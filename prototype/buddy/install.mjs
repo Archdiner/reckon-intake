@@ -142,7 +142,7 @@ async function install(){
   const on=rules.rules.filter(r=>r.enabled===true).map(r=>r.id);
   say('');
   say(exists?`Backed up ${SETTINGS} to ${backupPath}`:`Created ${SETTINGS} (there was none before)`);
-  say('Added to settings:');for(const l of added)say('  '+l);
+  if(added.length){say('Added to settings:');for(const l of added)say('  '+l);}else say('Added to settings: nothing new');
   if(kept.length){say('Left alone:');for(const l of kept)say('  '+l);}
   say(`Rules switched on: ${on.length?on.join(', '):'none (the owl will stay quiet until you switch one on)'}`);
   say(`Edit rules any time: ${join(RECKON,'rules.json')}`);
