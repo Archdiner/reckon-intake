@@ -9,6 +9,18 @@ concrete, in-the-moment directives (simplicity, visuals, doing less). Almost
 none of it is phrased as a reusable rule. Any direction has to work with that
 shape, not wish it away.
 
+## Two bars every direction must meet
+
+These come from how the owner already works with agents:
+
+- **Visuals earn their pixels.** Anything visual has to be striking and carry
+  function: state he would otherwise have to ask for. Ornament fails, and he
+  reverts it.
+- **Everything is inspectable afterwards.** Whatever a direction does (what it
+  showed, when, and from which data) is written to a plain local log he can
+  read. Any use of a model, and especially a stronger one, is logged with which
+  model and its usage, and is visible without digging.
+
 ## 1. One observation, with its evidence
 
 **First three seconds:** one sentence written by the person running the pilot
@@ -24,6 +36,14 @@ with at least three supporting moments.
 
 **Try tonight:** write one observation, pick its three evidence moments, inject
 them, and preview the page.
+
+**Earns its pixels:** the evidence is the visual. Each moment shows where and
+when he said it, so he can judge the observation without asking where it came
+from.
+
+**Inspectable:** the page names who wrote the observation and links each
+evidence line to its session and date. Written by hand, so no model use; if a
+model ever drafts one, the model and its usage are stated on the page.
 
 **Honest risk:** one reader, one sample. The observation can be wrong or
 obvious, and a copied line may change nothing. If no cluster has three real
@@ -47,6 +67,14 @@ gets cut), per project.
 prompt into the project's own agent instructions file by hand, as the owner's
 choice, and plan a second upload after a few sessions to compare.
 
+**Earns its pixels:** it has almost none, on purpose: one line of text at the
+moment it applies, and nothing otherwise.
+
+**Inspectable:** every prompt shown is logged locally with its date, project and
+the measures that triggered it, and he can read the full metrics file any time.
+"Backstage" means not on screen, never hidden from him. Computing the measures
+is deterministic; no model is involved unless he asks, and then it is logged.
+
 **Honest risk:** with one person and two snapshots, any change could be noise,
 so this can suggest but never show an effect. It needs a second upload, which
 the one-upload cap blocks unless the owner grants himself an extra. Silent
@@ -54,24 +82,35 @@ tracking also has to stay local and opt-in to avoid feeling like surveillance.
 
 ## 3. A companion in the status line
 
-**First three seconds:** in Claude Code's status line, a small mark and one
-line of context for the project he is in, such as "Reckon: you tend to want
-the smallest change that works here." It changes when he switches projects.
-No face, no score, no mood.
+**First three seconds:** in Claude Code's status line, live state he would
+otherwise have to ask for: which model this session is using, and what the
+session has used so far. A stronger model is marked plainly, never buried.
+After that, one short line of his own context for the current project, such as
+"here: smallest change that works." No face, no score, no mood.
 
 **One action:** none needed. Glancing at it is the use; one keystroke could
-hide it for the session.
+hide the context part for the session.
 
-**Data:** a small local file per project, written from the curated moments (or
-from direction 1's observation), read by a status line script. It needs no
-network and no new capture.
+**Data:** the fields the status line script already receives for the session
+(model name and running usage; check which ones his Claude Code version
+passes), plus a small local file per project written from the curated moments
+or from direction 1's observation. No network, no new capture.
 
-**Try tonight:** a status line script that reads the file for the current
-working directory and prints one line, installed by hand in his settings.
+**Try tonight:** a status line script that prints model, usage and the
+project line, and appends every line it prints to a local log with a
+timestamp. Installed by hand in his settings.
+
+**Earns its pixels:** model and usage are state he would otherwise stop and
+ask about; the context line is the only part that is Reckon's own, and it is
+one short phrase.
+
+**Inspectable:** the local log shows every line the companion displayed and
+when, including each model change and the usage at that point.
 
 **Honest risk:** status line space is precious, and stale or wrong context is
-worse than none. It only covers Claude Code, and it is a reminder; whether a
-reminder helps is exactly what is unknown.
+worse than none. It only covers Claude Code. Model and usage are useful on
+their own, so the companion could be valued for those while the Reckon line
+adds nothing; that would be worth knowing.
 
 ## 4. One moment, before and after
 
@@ -86,6 +125,13 @@ just after, trimmed by hand from the masked upload.
 
 **Try tonight:** pick three corrections from the 24, trim the before and after
 by hand, and preview them as a three-step page.
+
+**Earns its pixels:** the side-by-side is the content: the change his one line
+made is visible at a glance, without rereading a transcript.
+
+**Inspectable:** each moment names its session and date, and marks where the
+before and after text was trimmed. Picked and trimmed by hand, so no model
+use; if a model ever helps trim, the model and its usage are stated.
 
 **Honest risk:** it shows that his steering mattered in those moments, not
 how often; it could read as a highlight reel. Agent output can be long and can
