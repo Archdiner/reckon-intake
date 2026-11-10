@@ -39,7 +39,7 @@ pass('listUploads: own ledger + static history only, date/size/status only, unkn
 const before=new Map(s.m);
 {const r=await get('/browser/app',ctx(a.principal,a.email));assert.equal(r.status,200);assert.match(r.headers.get('content-type'),/text\/html/);assert.equal(r.headers.get('cache-control'),'private, no-store');const html=await r.text();
  assert(html.includes('a@fixture.invalid'));assert(!html.includes(a.reckon_id));assert(html.includes('2.0 KB'));assert(html.includes('5.0 MB'));assert(html.includes('Received.'));assert(html.includes('1 October 2026'));assert(!html.includes('777 B')&&!html.includes('999 B')&&!html.includes('b@fixture.invalid')&&!html.includes(b.reckon_id));
- assert(!html.includes('a'.repeat(64)));assert(html.includes('href="/cdn-cgi/access/logout"'));assert(html.includes('findings are written by hand'));assert(!/<script/.test(html));assert(!/[–—]/.test(html));}
+ assert(!html.includes('a'.repeat(64)));assert(html.includes('href="/cdn-cgi/access/logout"'));assert(/findings are written by hand/i.test(html));assert(!/<script/.test(html));assert(!/[–—]/.test(html));}
 assert.equal(budget,0);assert(![...s.m.keys()].some(k=>k.startsWith('requests:')));assert.deepEqual([...s.m.keys()].sort(),[...before.keys()].sort());pass('/browser/app shows own email and uploads only; empty findings state; no request budget consumed; no storage writes');
 // Findings render escaped; unsafe URLs are not linked.
 findingsByParticipant[a.participant]=[{title:'You <b>reviewed</b> diffs',url:'https://findings.example/one',date:'2026-11-01'},{title:'Second',url:'javascript:alert(1)',date:'2026-11-02'}];
