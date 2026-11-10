@@ -17,7 +17,7 @@ export const SESSIONS_FACTS_HTML=`<p>The collector runs on your machine and does
 <li>The pilot allows one upload per account, with small caps on accounts and upload size.</li>
 <li>The collector code is <a href="${REPO_URL}">public</a>, so you can read exactly what runs and what leaves your machine.</li>
 </ul>
-<p>Self-serve deletion and automatic retention limits are not built into this pilot yet. It is run by one operator, the person who gave you the install command, and you can reach them directly.</p>`;
+<p>Self-serve deletion and automatic retention limits are not built into this pilot yet. It is run by one operator, the person who gave you the install command.</p>`;
 
 export const PAGE_STYLE=`
 :root{--accent:#087f9c;--ink:#1b1f23;--muted:#57606a;--line:#d8dee4;--bg:#ffffff;--soft:#f5f7f9}
