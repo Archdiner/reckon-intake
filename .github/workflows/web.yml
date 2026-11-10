@@ -1,0 +1,27 @@
+name: web
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", "worker/landing-page.js", ".github/workflows/web.yml"]
+  pull_request:
+    paths: ["web/**", "worker/landing-page.js", ".github/workflows/web.yml"]
+
+jobs:
+  site:
+    runs-on: ubuntu-latest
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+        working-directory: web
+      - run: npm test
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+      - run: npm run typecheck
+        working-directory: web
