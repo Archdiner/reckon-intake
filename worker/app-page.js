@@ -64,7 +64,7 @@ export function renderAppPage({email,reckonId,uploads=[],findings=[]}){
 </header>
 <main>
 <h1>Your Reckon page</h1>
-<p>You are signed in as ${escapeHtml(email)}. Your Reckon ID is <code>${escapeHtml(reckonId)}</code>.</p>
+<p>You are signed in as ${escapeHtml(email)}.</p>
 
 <section aria-labelledby="sent">
 <h2 id="sent">What you sent</h2>
