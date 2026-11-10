@@ -7,7 +7,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { TRUST, INSTALL_COMMAND, REPO_URL, SIGN_IN_URL, NOT_LIST } from "../lib/content.ts";
 import * as worker from "../../worker/landing-page.js";
-import { SCENARIOS, SKETCH_COPY } from "../lib/sketch-content.ts";
+import { PREVIEW_COPY } from "../lib/preview-content.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const strip = (s) => s.replace(/<[^>]+>/g, "").trim();
@@ -59,22 +59,45 @@ test("no tracking, storage, network calls or dashboard widgets in the site", () 
   }
 });
 
-test("the centerpiece module keeps its slot comment and sketch labeling", () => {
-  const src = readFileSync(join(root, "components/ExperienceSketch.tsx"), "utf8");
-  assert.match(src, /THE place where Reckon's real interaction will land/);
-  assert.equal(SKETCH_COPY.eyebrow, "Interactive sketch");
-  assert.match(SKETCH_COPY.disclaimer, /No AI is called, nothing you type leaves this page, and nothing is stored or measured/);
+const previewSrc = () => readFileSync(join(root, "components/CallsPreview.tsx"), "utf8");
+
+test("the centerpiece is a labeled, static preview of the signed-in calls section", () => {
+  const src = previewSrc();
+  assert.match(src, /centerpiece slot/);
+  assert.equal(PREVIEW_COPY.label, "Preview with placeholder bars. No real people, quotes or decisions.");
+  assert.match(src, /\{copy\.label\}/, "component must render the placeholder label");
+  assert.match(PREVIEW_COPY.caption, /A static preview, not the product/);
+  assert.equal(PREVIEW_COPY.sectionTitle, "Calls we noticed in your sessions");
+  // Type labels and status wording are the signed-in page's real ones.
+  const types = ["Budget or limit", "Merge or release gate", "Asked for proof", "Go-ahead", "Scope call"];
+  for (const r of PREVIEW_COPY.rows) assert(types.includes(r.type), `unknown type label ${r.type}`);
+  assert.equal(PREVIEW_COPY.status.notChecked, "Not checked");
+  assert.match(PREVIEW_COPY.legend[2].text, /Marks stay on your device, in your browser/);
 });
 
-test("sketch content is isolated: the component holds no scenario or framing text", () => {
-  const src = readFileSync(join(root, "components/ExperienceSketch.tsx"), "utf8");
+test("the preview pretends nothing: no interaction, no client code, no invented content", () => {
+  const src = previewSrc();
+  for (const re of [/"use client"/, /\bon[A-Z][a-zA-Z]*=/, /<button/, /<input/, /<textarea/, /<form/, /useState|useEffect/, /<blockquote/]) {
+    assert(!re.test(src), `${re} in CallsPreview`);
+  }
+  const text = JSON.stringify(PREVIEW_COPY);
+  assert(!/[\u201c\u201d]/.test(text), "no quoted decision text in the preview copy");
+  assert(!/\b(Maya|Alex|Sam|Jordan|Priya)\b/.test(text), "no invented people");
+  for (const w of ["score", "streak", "dashboard", "ranking", "automatically", "every upload", "we analy"]) {
+    assert(!text.toLowerCase().includes(w), `"${w}" in preview copy`);
+  }
+});
+
+test("preview content is isolated: the component holds no copy", () => {
+  const src = previewSrc();
   const strings = [];
   const collect = (v) => (typeof v === "string" ? strings.push(v) : Object.values(v).forEach(collect));
-  collect(SKETCH_COPY);
-  for (const s of SCENARIOS) collect({ ...s, id: "" });
-  for (const t of strings.filter((t) => t.length > 3)) assert(!src.includes(t), `component hardcodes "${t}"`);
-  assert.equal(new Set(SCENARIOS.map((s) => s.id)).size, SCENARIOS.length);
-  assert(SCENARIOS.length > 0);
+  collect(PREVIEW_COPY);
+  const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  for (const t of strings.filter((t) => t.length > 3 && !["not_checked", "checked"].includes(t))) {
+    // Whole-word match, so identifiers such as copy.status.notChecked do not count.
+    assert(!new RegExp(`(?<![A-Za-z_.])${esc(t)}(?![A-Za-z_])`).test(src), `component hardcodes "${t}"`);
+  }
 });
 
 test("effects of AI turn-taking on thinking are framed as questions, not facts", () => {

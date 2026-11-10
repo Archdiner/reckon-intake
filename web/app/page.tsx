@@ -1,9 +1,9 @@
-import ExperienceSketch from "@/components/ExperienceSketch";
+import CallsPreview from "@/components/CallsPreview";
 import InstallCommand from "@/components/InstallCommand";
 import Mark from "@/components/Mark";
 import RevealObserver from "@/components/RevealObserver";
 import { INSTALL_COMMAND, NOT_LIST, REPO_URL, SIGN_IN_URL, SUPPORTED_SOURCES, TRUST } from "@/lib/content";
-import { SCENARIOS, SKETCH_COPY } from "@/lib/sketch-content";
+import { PREVIEW_COPY } from "@/lib/preview-content";
 
 const LOOP = [
   {
@@ -58,7 +58,7 @@ export default function Home() {
             <span>Reckon</span>
           </a>
           <nav aria-label="Sections" className="nav-links">
-            <a href="#sketch">Sketch</a>
+            <a href="#preview">Preview</a>
             <a href="#loop">The loop</a>
             <a href="#today">Today</a>
             <a href="#sessions">Your sessions</a>
@@ -91,8 +91,8 @@ export default function Home() {
               interaction itself so that thinking with AI feels rewarding and stays visibly your own.
             </p>
             <div className="hero-actions">
-              <a className="btn" href="#sketch">
-                Try the sketch
+              <a className="btn" href="#preview">
+                See your private page
               </a>
               <a className="btn btn-ghost" href="#today">
                 What exists today
@@ -101,8 +101,8 @@ export default function Home() {
           </div>
         </section>
 
-        <div className="container sketch-wrap">
-          <ExperienceSketch scenarios={SCENARIOS} copy={SKETCH_COPY} id="sketch" />
+        <div className="container preview-wrap">
+          <CallsPreview copy={PREVIEW_COPY} signInHref={SIGN_IN_URL} id="preview" />
         </div>
 
         <section className="section" id="loop" aria-labelledby="loop-title">

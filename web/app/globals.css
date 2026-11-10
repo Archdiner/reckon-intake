@@ -339,7 +339,7 @@ p {
   animation: fadeUp 0.9s var(--ease) 0.24s both;
 }
 
-.sketch-wrap {
+.preview-wrap {
   position: relative;
   z-index: 2;
   animation: fadeUp 1s var(--ease) 0.35s both;
@@ -843,7 +843,7 @@ html:not(.js) .loop-step::before {
     transition: none;
   }
   .pill,
-  .sketch-wrap,
+  .preview-wrap,
   .hero-title,
   .hero-sub,
   .hero-actions {

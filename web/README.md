@@ -1,7 +1,8 @@
 # Reckon site (`web/`)
 
 The public Reckon website: a fully static Next.js (App Router, TypeScript)
-site. It explains the problem Reckon is studying, holds an interactive sketch,
+site. It explains the question Reckon is studying, previews what the private
+page shows,
 and describes the pilot as it exists today. It has no server code, no secrets,
 no analytics, no cookies and no network calls of its own.
 
@@ -18,7 +19,7 @@ npm run dev        # http://localhost:3000
 Other scripts:
 
 ```bash
-npm test           # content and honesty checks, plus the sketch's word rules
+npm test           # content, honesty and isolation checks
 npm run typecheck  # tsc --noEmit
 npm run build      # static export to web/out/
 npm start          # serve web/out/ locally after a build
@@ -45,18 +46,18 @@ No environment variables are needed.
 - `app/globals.css`: design tokens and page styles. One accent color
   (`--accent`), Instrument Serif for display type, Inter for body text, both
   self-hosted from npm (`@fontsource`), so no font CDN is contacted.
-- `components/ExperienceSketch.tsx` (+ `.module.css`): the centerpiece slot.
-  Today it holds a sketch of the feeling Reckon is after: you think first, and
-  your own reasoning is made visible before any answer appears. It is built to
-  be swapped out wholesale for the real interaction once the research picks a
-  direction; the page only passes it `scenarios` and an `id`.
-- `lib/thought-map.ts`: the sketch's few fixed word rules (because, unless,
-  if, questions, numbers). Transparent and local; nothing is scored.
-- `lib/sketch-content.ts`: everything the sketch shows: `SCENARIOS` (questions
-  and optional pre-written answers) and `SKETCH_COPY` (all framing text). To
-  swap in new material, edit this file only; the component holds no visible
-  text, and a test fails if that changes. Leaving out a scenario's `answer`
-  hides the "read an answer" step for it.
+- `components/CallsPreview.tsx` (+ `.module.css`): the centerpiece slot. A
+  static, server-rendered preview of the signed-in page's "Calls we noticed"
+  section: abstract rows with placeholder bars where a participant's own words
+  would be, the real type labels and status wording, and a legend explaining
+  what the private page shows. No client JavaScript and nothing interactive;
+  it does not pretend to be the product.
+- `lib/preview-content.ts`: every string the preview shows (`PREVIEW_COPY`).
+  To change the centerpiece copy, edit this file only; the component holds no
+  visible text, and a test fails if that changes. Never add invented people,
+  quotes or decisions here, and never real participant data: the preview
+  stays abstract, and the tests check that it stays labeled as a placeholder
+  preview.
 - `lib/content.ts`: install command, links, and the "What happens to your
   sessions" facts.
 
