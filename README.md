@@ -25,7 +25,8 @@ with it.
   to the receiver.
 - `worker/landing-page.js` - the public landing page HTML, served at `GET /` by
   both workers. `worker/app-page.js` - the signed-in page at `GET /browser/app`
-  (account, your uploads, findings), behind the same Cloudflare Access identity
+  (standing instructions picked from your upload, which you can tick and
+  copy as plain lines, plus your upload status and findings), behind the same Cloudflare Access identity
   path as the other `/browser/*` routes. Health JSON stays at `/health`.
 - `tools/build-client-assets.mjs` - regenerates `worker/client-assets.js`
   (the served installer + client bundle) from `install.sh` and `client/`.

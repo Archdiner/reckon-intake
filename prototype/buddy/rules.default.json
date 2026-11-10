@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "note": "Starter suggestions, not findings about you. Switch on the ones you want, reword what the owl says, change the numbers. Nothing runs unless enabled is true. The owl speaks at most 3 times per session with a 10-minute pause between, and never repeats a rule in one session; a rule also goes quiet on a project after 3 fires there. Tune the pace under \"limits\".",
+  "limits": {
+    "maxPerSession": 3,
+    "cooldownMinutes": 10,
+    "repeatRuleInSession": false
+  },
+  "rules": [
+    {
+      "id": "scope-growth",
+      "kind": "scope_growth",
+      "enabled": false,
+      "description": "After a short request (25 words or fewer), the turn edited 4 or more files, or the agent said it added extras you did not ask for.",
+      "says": "this grew past the ask - trim to the smallest version?",
+      "params": {
+        "smallRequestMaxWords": 25,
+        "minFiles": 4
+      }
+    },
+    {
+      "id": "redirect-run",
+      "kind": "redirect_run",
+      "enabled": false,
+      "description": "You have sent 3 or more steering messages in this session: messages starting with no, don't, stop, instead, actually, simpler and similar words.",
+      "says": "several redirects - worth stating the target shape up front?",
+      "params": {
+        "minRedirects": 3
+      }
+    },
+    {
+      "id": "ornament",
+      "kind": "ornament",
+      "enabled": false,
+      "description": "This turn's edits add decorative styling: gradients, shadows, animations or emoji.",
+      "says": "added flourish - keep or strip?",
+      "params": {}
+    },
+    {
+      "id": "plan-ceremony",
+      "kind": "plan_ceremony",
+      "enabled": false,
+      "description": "The agent replied with a numbered or bulleted plan of 5 or more steps and made no changes yet.",
+      "says": "skip the plan, start the smallest step?",
+      "params": {
+        "minSteps": 5
+      }
+    },
+    {
+      "id": "session-length",
+      "kind": "session_length",
+      "enabled": false,
+      "description": "A neutral check-in once the session has run about 90 minutes. Not a judgment about long sessions.",
+      "says": "about 90 minutes in. still heading where you meant to?",
+      "params": {
+        "minutes": 90
+      }
+    }
+  ]
+}
