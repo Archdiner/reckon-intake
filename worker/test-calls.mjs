@@ -4,11 +4,14 @@ import worker from'./worker.js';import{ReckonRegistry}from'./identity-registry.j
 class Storage{constructor(){this.m=new Map();this.queue=Promise.resolve();}async get(k){return structuredClone(this.m.get(k));}async put(k,v){this.m.set(k,structuredClone(v));}async transaction(fn){const r=this.queue.then(()=>fn(this));this.queue=r.catch(()=>{});return r;}}
 let n=0;const pass=x=>{n++;console.log('PASS',x)};
 const SRC='https://source.fixture.invalid/pr/7';
+// The extractor caps quotes at 280 characters and marks a cut with a trailing " …".
+const TRUNCATED=('Scope this release to the import flow only and leave the sharing work for the next cycle, because the sharing changes still need a review from the people who own the permissions model and we do not want to block the import fix on that conversation, which could take '.repeat(2)).slice(0,278)+' …';
 const XSS='<script>alert(1)</script><img src=x onerror=alert(2)>"\'&';
 const fixtures=()=>[
  {id:'call-1',type:'budget_cap',project:'fixture-app',date:'2026-10-03',quote:'Keep the monthly spend under the agreed cap.',status:'not_checked',outcome:null,check_target:{kind:'github_pr',locator:'fixture-org/fixture-app#12',basis:'PR mentioned in session'}},
  {id:'call-2',type:'merge_or_release_gate',project:'fixture-app',date:null,quote:'Do not merge until the migration test passes.',status:'checked',outcome:{text:'Checked 2026-11-02: the current code contains a migration test in the release workflow. Current state observed on that date, not proof about the original change.',source_url:SRC},check_target:{kind:'github_pr',locator:'fixture-org/fixture-app#14',basis:'PR mentioned in session'}},
  {id:'call-3',type:'verification_demand',project:'other-fixture',date:'2026-10-05',quote:'Show me the failing test before you change anything.',status:'not_checked',outcome:null,check_target:{kind:'none',locator:null,basis:'no target found'}},
+ {id:'call-4',type:'launch_or_scope_call',project:'other-fixture',date:'2026-10-06',quote:TRUNCATED,status:'not_checked',outcome:null,check_target:{kind:'none',locator:null,basis:'no target found'}},
 ];
 const section=html=>{const a=html.indexOf('<section aria-labelledby="calls"');return a<0?'':html.slice(a,html.indexOf('</section>',a)+10);};
 const urls=html=>[...html.matchAll(/https?:\/\/[^\s"'<>)]+/g)].map(m=>m[0]);
@@ -42,7 +45,7 @@ pass('route: own calls only, via participant mapping; CSP allows exactly the one
  assert(sec.includes('Checked 2026-11-02: the current code contains a migration test in the release workflow. Current state observed on that date, not proof about the original change.'));
  assert(sec.includes(`<a href="${SRC}" rel="noopener noreferrer">Source</a>`));
  assert.equal((sec.match(/<a /g)||[]).length,1);
- assert(sec.includes('treat these as candidates'));assert(sec.includes("'Not checked' means nobody has looked at what happened next, not that it went wrong."));
+ assert(sec.includes('treat these as candidates'));assert(sec.includes('No outcome check is recorded here; you may have checked elsewhere.'));assert(!sec.includes('nobody has looked'));
  assert(sec.includes('Marks stay on this device, in this browser.'));
  assert(!/\bopen\b/i.test(sec.replace(/noopener/g,'')),'no "open" status wording');
  assert(!/analy[sz]e (your|future)|every upload|automatically/i.test(html),'no claim of automatic or ongoing analysis');
@@ -50,7 +53,10 @@ pass('route: own calls only, via participant mapping; CSP allows exactly the one
  // Anything other than 'checked' (including a stray legacy value) shows as Not checked.
  const legacy=section(renderAppPage({email:'x',reckonId:'rk_a',calls:[{...fixtures()[2],status:'open'}]}));assert(legacy.includes('Not checked.'));
  const noOutcome=section(renderAppPage({email:'x',reckonId:'rk_a',calls:[{...fixtures()[1],outcome:null}]}));assert(noOutcome.includes('Not checked.'));}
-pass('labels, dates, Not checked with plain-text locator, checked outcome with Source link');
+assert.equal(TRUNCATED.length,280);
+{const sec=section(renderAppPage({email:'x',reckonId:'rk_a',calls:fixtures()}));assert(sec.includes(`<blockquote class="call-quote">${TRUNCATED.slice(0,-2)}\u00a0\u2026</blockquote>`),'truncated quote keeps its text; the trailing " …" is joined with a no-break space');assert(!sec.includes(' \u2026</blockquote>'));
+ const plainEnd=section(renderAppPage({email:'x',reckonId:'rk_a',calls:[{...fixtures()[0],quote:'Ends with an ellipsis mid … sentence'}]}));assert(plainEnd.includes('mid … sentence'),'only a trailing marker is touched');assert(sec.includes('Scope call'));}
+pass('labels, dates, Not checked with plain-text locator, checked outcome with Source link, truncated quote kept as given');
 
 // Escaping: an XSS probe in every dynamic field stays inert.
 {const html=renderAppPage({email:'a@fixture.invalid',reckonId:XSS,calls:[{id:XSS,type:XSS,project:XSS,date:XSS,quote:XSS,status:'checked',outcome:{text:XSS,source_url:'javascript:alert(3)'},check_target:{kind:'github_pr',locator:XSS,basis:XSS}},{id:'c2',type:'go_ahead',project:'p',date:null,quote:'q',status:'not_checked',outcome:null,check_target:{kind:'github_pr',locator:XSS,basis:'b'}}]});const sec=section(html);

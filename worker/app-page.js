@@ -77,6 +77,10 @@ export function normalizeCalls(calls){
  return (Array.isArray(calls)?calls:[]).filter(c=>c&&typeof c.id==='string'&&c.id&&typeof c.quote==='string'&&c.quote);
 }
 
+// The extractor marks a cut quote with a trailing " …". Join it to the last
+// word with a no-break space so the ellipsis never wraps onto a line alone.
+const keepEllipsis=html=>html.replace(/ \u2026$/,'\u00a0\u2026');
+
 function callItem(c){
  const label=CALL_TYPE_LABEL[c.type]||'Call';
  const date=typeof c.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(c.date)?formatDate(c.date):null;
@@ -92,7 +96,7 @@ function callItem(c){
  }
  return `<li class="call" data-call-id="${escapeHtml(c.id)}">
 <p class="call-meta">${meta}</p>
-<blockquote class="call-quote">${escapeHtml(c.quote)}</blockquote>
+<blockquote class="call-quote">${keepEllipsis(escapeHtml(c.quote))}</blockquote>
 ${status}
 <button type="button" class="review" aria-pressed="false" hidden>Mark reviewed</button>
 </li>`;
@@ -104,7 +108,7 @@ function callsSection(calls,reckonId){
  return `
 <section aria-labelledby="calls" class="calls" id="calls-section"${account}>
 <h2 id="calls">Calls we noticed in your sessions</h2>
-<p>A rule pass over your upload pulled out moments that look like decisions - a budget, a merge gate, a go-ahead. Rules misread sometimes, so treat these as candidates. 'Not checked' means nobody has looked at what happened next, not that it went wrong.</p>
+<p>A rule pass over your upload pulled out moments that look like decisions - a budget, a merge gate, a go-ahead. Rules misread sometimes, so treat these as candidates. No outcome check is recorded here; you may have checked elsewhere.</p>
 <ol class="call-list">
 ${calls.map(callItem).join('\n')}
 </ol>
