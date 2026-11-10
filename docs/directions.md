@@ -84,124 +84,96 @@ are deterministic; no model is involved unless he asks, and then it is logged.
 they do, one person and two snapshots can only suggest, never show, an effect.
 Any tracking has to stay local and opt-in to avoid feeling like surveillance.
 
-## 3. A terminal buddy that occasionally speaks up
+## 3. A terminal buddy that occasionally speaks up (picked, built)
 
-The owner asked for "a little terminal buddy that pops out occasionally with
-some ideas or interferences", one that sees what he is doing live and adapts
-over time, and asked whether that is feasible or overdone.
+The owner picked this direction. It is built as a local install in
+`prototype/buddy/`; its README is the user-facing guide. Nothing about it is
+deployed or wired up by this repository.
 
-**Short answer: feasible in a lean form, inside Claude Code.** It can see the
-session as it happens, say one line at the end of a turn, and adapt, all locally
-and at no cost to run. It cannot see anything outside Claude Code, and it
-cannot speak between turns. It becomes overdone the moment it talks more than
-about once a session.
+### What was built
 
-A working preview is in `prototype/buddy/` (not wired into anything; see its
-README). Sources for the facts below:
+- **An owl in the status line,** with three states:
+  - `(-,-) zz reckon`: sleeping, no recent activity;
+  - `(o,o) reckon`: attentive, the session's token count moved in the last 3
+    minutes;
+  - `(o,o)> <what it said>`: speaking, for 2 minutes after it speaks.
 
-- the official hooks reference, https://code.claude.com/docs/en/hooks;
-- the official status line guide, https://code.claude.com/docs/en/statusline;
-- the installed Claude Code 2.1.42 build in this environment.
+  The right side shows the model in use, the session's estimated cost and the
+  context used, so usage stays visible. Plain ASCII, one line.
+- **One interjection at most per session,** across all rules. It is sent at the
+  end of a turn from the Stop hook as a `systemMessage` prefixed by the owl, for
+  example `(o,o)> this grew past the ask - trim to the smallest version?` A rule
+  that has fired 3 times on a project goes quiet there.
+- **Rules the user picks and edits.** Five starter suggestions live in
+  `~/.reckon/rules.json`, each with an `enabled` flag, a plain description, the
+  words the owl says, and its numbers:
+  - `scope-growth`: a short request whose turn edited many files or added
+    extras;
+  - `redirect-run`: 3 or more steering messages in the session;
+  - `ornament`: edits that add gradients, shadows, animations or emoji;
+  - `plan-ceremony`: a long plan and no changes yet;
+  - `session-length`: a neutral check-in at about 90 minutes.
 
-The docs describe the current release. A few fields may differ in older
-versions, so the first trial should confirm them on his machine.
+  They are suggestions drawn from the owner's patterns, not validated habits.
+  The installer asks about each one, and nothing is on by default.
+- **An installer,** `install.mjs`:
+  - backs up `~/.claude/settings.json` to a timestamped file before changing it;
+  - adds the status line and a Stop hook, and prints exactly what it added;
+  - wraps an existing status line command, so its output is shown unchanged with
+    the owl on a line below;
+  - asks before replacing a status line it cannot wrap;
+  - appends the Stop hook once, alongside existing hooks.
 
-### Can a hook say something he actually sees?
+  `--uninstall` removes only the owl's entries and restores the original status
+  line.
+- **Robust and inspectable.** Malformed input, transcripts, state or rules never
+  break the session: the hook stays silent and logs an error. `~/.reckon/buddy.log`
+  records every fire, skip and error with only a timestamp, the rule id, a hash
+  of the session id and a reason word. No prompts, quotes or file contents are
+  logged. The log rotates at 1 MB.
+- **Tested.** `prototype/buddy/buddy.test.mjs` covers:
+  - the pet states and every starter rule;
+  - the session cap and the project quiet-down;
+  - malformed inputs, log hygiene and rotation;
+  - installer merge, wrap, replace and uninstall, against a temporary home
+    folder.
 
-Yes, through `systemMessage`. The hooks reference lists it as a "Warning message
-shown to the user", and the installed build describes it the same way, as
-"Display a message to the user (all hooks)". The reference names the events
-that discard it (Setup, InstructionsLoaded, MessageDisplay, Notification,
-ConfigChange, PreCompact, PostCompact, WorktreeRemove, SessionEnd); Stop is not
-among them.
+### Why this shape (verified against the docs)
 
-The other channels are wrong for this job:
+- **A hook can speak to the person.** `systemMessage` is a "Warning message shown
+  to the user" (https://code.claude.com/docs/en/hooks), and the installed 2.1.42
+  build describes it as "Display a message to the user (all hooks)". Stop is not
+  among the events the docs list as discarding it.
+- **The other channels reach only the model.** `additionalContext` "doesn't
+  appear as a chat message in the interface" and on Stop it keeps the agent
+  working. For `UserPromptSubmit`, "Neither channel produces a visible
+  transcript entry." So the owl speaks only through `systemMessage`, and never
+  to the agent.
+- **What the Stop hook sees:** `transcript_path`, `cwd`, `stop_hook_active` and
+  `last_assistant_message`.
+- **What the status line sees:** the model, estimated cost, lines changed and
+  context window, refreshed about 300 ms after each conversation update
+  (https://code.claude.com/docs/en/statusline).
 
-- `additionalContext` goes to the model and "doesn't appear as a chat message in
-  the interface". On Stop it even keeps the agent working.
-- Plain stdout from `UserPromptSubmit` or `SessionStart` is added to the
-  model's context. For `UserPromptSubmit` the reference says "Neither channel
-  produces a visible transcript entry."
+### Limits, stated to the user
 
-So the buddy speaks only through `systemMessage` on Stop. Its words reach him
-and never the agent.
+- **What it cannot see:** it reads the transcript after each turn only, and
+  cannot see the screen, the editor, other apps or anything between turns.
+- **How it decides:** the rules are pattern matching, not understanding.
+- **What leaves the machine:** nothing. No network, no model calls, and it
+  costs nothing to run.
 
-### Does it see enough to be timely?
+### Still to confirm on his machine
 
-Within the session, yes:
-
-- **Stop hook input:** the session's `transcript_path` (every prompt, reply and
-  tool call so far), `cwd`, `stop_hook_active`, and `last_assistant_message`,
-  the agent's final text for the turn.
-- **Status line input:** the model, the estimated session cost, lines added and
-  removed, and how full the context window is.
-
-That is enough for rules such as "the prompt asked for something small and
-this turn edited five files", "three redirects in a row" or "the agent just
-described adding a gradient". Those follow his own steering patterns.
-
-What it cannot see: his screen, his editor outside Claude Code, other apps,
-other tools such as Cursor or Codex, and anything between turns. Background
-(`async`) hooks do not change this; they report back to the agent, not to him.
-
-### The smallest visual identity that earns its place
-
-- **Two states in the status line, nothing more:**
-  - Quiet: `· Reckon`, plus at most one phrase of his own for the project.
-  - Has something to say: `◆ Reckon: <the thought>` for about two minutes after
-    it speaks.
-
-  The glyph change is the only signal that it has something. It carries state
-  he would otherwise not know about, so it earns its pixels.
-- **The interjection itself:** one named line, `Reckon: ...`, phrased as a
-  question.
-- **Cap:** at most once per session by default.
-- No face, no score, no mood.
-
-### How it adapts
-
-- **No model calls:** rules are deterministic, local and free to run.
-- **It quiets itself:** a rule shown three times on a project goes quiet there.
-- **Rules and phrases live in one editable file**
-  (`~/.reckon/buddy-rules.json`), which can be revised by hand after he reads
-  the log or after a later upload. A model-written thought could be added later
-  only as an explicit opt-in, occasional rather than continuous, and logged
-  with its model and usage.
-
-### Inspectable
-
-Every status line change (with the model in use), every thought (with its rule,
-the prompt and files touched) and the next prompt after each thought go to
-`~/.reckon/buddy.log`. Whether it helped is judged by reading that log, not by
-a number on screen. It makes no network calls and uploads nothing.
-
-### Setup he runs once
-
-Copy the script and the rules file to `~/.reckon/`. Then add `statusLine` and
-one `Stop` hook to `~/.claude/settings.json`; the exact entries are in the
-prototype README. Deleting the entries uninstalls it. It needs Node, which an
-npm install of Claude Code already has.
+The docs describe the current release. The first real session should confirm
+that the Stop hook's line appears in his version of Claude Code, and that a
+wrapped status line renders cleanly in his terminal.
 
 ### Reduced form (fallback)
 
-If the interjections prove noisy or unwelcome, drop the Stop hook and keep only
-the status line. That fallback shows the model, cost and context used, plus his
-project phrase. It is honest and useful, but it is a readout, not a buddy, and
-should be labeled as the reduced form.
-
-### Tonight's trial, smallest install
-
-Install the status line entry and the Stop hook with the example rules, and use
-Claude Code normally for an evening. Then read `~/.reckon/buddy.log` and answer
-four questions:
-
-- Did it speak at most once per session?
-- Was each thought about something real?
-- Did the next prompt suggest it was useful?
-- Did the status line glyph carry its weight?
-
-If it never spoke, the rules are too narrow; if it annoyed, fall back to the
-reduced form.
+If the interjections prove unwelcome, he can switch every rule off in
+`rules.json`. The owl then stays a quiet status line with model and usage: a
+readout, not a buddy.
 
 ## 4. One moment, before and after
 
