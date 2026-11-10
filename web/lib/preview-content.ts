@@ -48,7 +48,7 @@ export const PREVIEW_COPY: PreviewCopy = {
   intro:
     "In this pilot, a rule pass over an upload pulls out moments that look like decisions: a budget, a merge gate, a go-ahead. Your private page lists them, with where each one could be checked, and you can mark the ones you have reviewed.",
   candidates:
-    "Rules misread sometimes, so every entry is a candidate, not a conclusion. Not checked means nobody has looked yet, not that anything went wrong.",
+    "Rules misread sometimes, so every entry is a candidate, not a conclusion. Not checked means no outcome check is recorded on the page; you may have checked elsewhere.",
   sectionTitle: "Calls we noticed in your sessions",
   rows: [
     { type: "Budget or limit", status: "not_checked" },

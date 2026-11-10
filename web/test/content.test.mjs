@@ -72,6 +72,8 @@ test("the centerpiece is a labeled, static preview of the signed-in calls sectio
   const types = ["Budget or limit", "Merge or release gate", "Asked for proof", "Go-ahead", "Scope call"];
   for (const r of PREVIEW_COPY.rows) assert(types.includes(r.type), `unknown type label ${r.type}`);
   assert.equal(PREVIEW_COPY.status.notChecked, "Not checked");
+  // Matches the shipped private page: say what is recorded, not what anyone did.
+  assert.match(PREVIEW_COPY.candidates, /Not checked means no outcome check is recorded on the page; you may have checked elsewhere\./);
   assert.match(PREVIEW_COPY.legend[2].text, /Marks stay on your device, in your browser/);
 });
 
@@ -83,7 +85,7 @@ test("the preview pretends nothing: no interaction, no client code, no invented 
   const text = JSON.stringify(PREVIEW_COPY);
   assert(!/[\u201c\u201d]/.test(text), "no quoted decision text in the preview copy");
   assert(!/\b(Maya|Alex|Sam|Jordan|Priya)\b/.test(text), "no invented people");
-  for (const w of ["score", "streak", "dashboard", "ranking", "automatically", "every upload", "we analy"]) {
+  for (const w of ["score", "streak", "dashboard", "ranking", "automatically", "every upload", "we analy", "nobody has looked", "went wrong"]) {
     assert(!text.toLowerCase().includes(w), `"${w}" in preview copy`);
   }
 });
