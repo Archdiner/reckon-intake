@@ -27,6 +27,8 @@ with it.
   both workers. `worker/app-page.js` - the signed-in page at `GET /browser/app`
   (account, your uploads, findings), behind the same Cloudflare Access identity
   path as the other `/browser/*` routes. Health JSON stays at `/health`.
+- `web/` - the public website: a static Next.js site deployed on Vercel with
+  root directory `web/`. See [`web/README.md`](web/README.md).
 - `tools/build-client-assets.mjs` - regenerates `worker/client-assets.js`
   (the served installer + client bundle) from `install.sh` and `client/`.
 - `worker/test-*.mjs` - the test suites (`npm test` inside `worker/`).
