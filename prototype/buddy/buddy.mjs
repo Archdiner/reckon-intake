@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-// Reckon buddy: a small owl for Claude Code's status line that speaks up at
-// most once per session, at the end of a turn, when one of the rules the user
-// switched on matches. Installed by install.mjs; see README.md.
+// Reckon buddy: a small owl for Claude Code's status line that speaks up a
+// few times per session at most, at the end of a turn, when one of the rules
+// the user switched on matches. Installed by install.mjs; see README.md.
 //
 //   node buddy.mjs status   status line command (Claude Code sends JSON on stdin)
 //   node buddy.mjs stop     Stop hook command (Claude Code sends JSON on stdin)
@@ -120,6 +120,21 @@ function loadRules(){
  return r.rules.filter(x=>x&&x.enabled===true&&typeof x.says==='string'&&x.says.trim()&&CHECKS[x.kind]);
 }
 
+// How often the owl may speak. Defaults: a few nudges per session with a
+// pause between, and no rule repeating in one session. Tunable under "limits"
+// in rules.json; the per-project quiet-down (QUIET_AFTER) is fixed.
+const DEFAULT_LIMITS={maxPerSession:3,cooldownMinutes:10,repeatRuleInSession:false};
+export function loadLimits(){
+ try{
+  const l=readJson(join(HOME,'rules.json'))?.limits||{};
+  return{
+   maxPerSession:Number.isInteger(l.maxPerSession)&&l.maxPerSession>=1?l.maxPerSession:DEFAULT_LIMITS.maxPerSession,
+   cooldownMinutes:Number.isFinite(l.cooldownMinutes)&&l.cooldownMinutes>=0?l.cooldownMinutes:DEFAULT_LIMITS.cooldownMinutes,
+   repeatRuleInSession:l.repeatRuleInSession===true,
+  };
+ }catch{return{...DEFAULT_LIMITS};}
+}
+
 // One line, safe for a terminal: no control characters, bounded length.
 const oneLine=s=>String(s).replace(/[\u0000-\u001f\u007f]+/g,' ').replace(/\s+/g,' ').trim().slice(0,160);
 
@@ -135,14 +150,23 @@ export function stop(input){
  catch{log('error',{session,why:'transcript'});return null;}
  const projectDir=input?.cwd||'';
  const pp=projectFile(projectDir),ps=readJsonOr(pp,{fires:{}});
+ const limits=loadLimits();
+ const now=typeof input?._now==='number'?input._now:Date.now(); // _now is a test hook; Claude Code never sends it
+ // Sessions installed before limits existed hold only st.spoke; count it as one fire.
+ const fires=Array.isArray(st.fires)?st.fires:(st.spoke?[{rule:st.spoke.rule,at:st.spoke.at}]:[]);
  for(const r of rules){
   let hit=false;
   try{hit=CHECKS[r.kind](r.params||{},ctx);}catch{log('error',{rule:r.id,session,why:'check'});continue;}
   if(!hit)continue;
-  // The promise: at most one interruption per session, across all rules.
-  if(st.spoke){log('skip',{rule:r.id,session,why:'session-cap'});continue;}
+  // A few nudges, never a nag: a per-session cap, a pause between, and no
+  // rule repeating in one session. All three tunable in rules.json "limits".
+  if(fires.length>=limits.maxPerSession){log('skip',{rule:r.id,session,why:'session-cap'});continue;}
+  const last=fires.at(-1);
+  if(last&&now-last.at<limits.cooldownMinutes*60000){log('skip',{rule:r.id,session,why:'cooldown'});continue;}
+  if(!limits.repeatRuleInSession&&fires.some(f=>f.rule===r.id)){log('skip',{rule:r.id,session,why:'repeat-rule'});continue;}
   if((ps.fires?.[r.id]||0)>=QUIET_AFTER){log('skip',{rule:r.id,session,why:'project-quiet'});continue;}
-  st.spoke={rule:r.id,at:Date.now()};
+  st.spoke={rule:r.id,at:now};
+  st.fires=[...fires,{rule:r.id,at:now}];
   ps.fires={...(ps.fires||{}),[r.id]:(ps.fires?.[r.id]||0)+1};
   try{writeJson(sp,st);writeJson(pp,ps);}catch{log('error',{rule:r.id,session,why:'state'});return null;}
   log('fire',{rule:r.id,session});

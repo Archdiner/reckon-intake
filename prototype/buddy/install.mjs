@@ -69,7 +69,8 @@ async function chooseRules(a){
  try{current=JSON.parse(readFileSync(join(RECKON,'rules.json'),'utf8'));}catch{}
  const mine=new Map((Array.isArray(current?.rules)?current.rules:[]).filter(r=>r&&r.id).map(r=>[r.id,r]));
  say('');
- say('The owl speaks at most once per session, and only for rules you switch on here.');
+ say('The owl speaks only for rules you switch on here - a few times per session at');
+ say('most, with a pause between, and never the same rule twice in a session.');
  say('These are starter suggestions, not findings about you. You can reword or');
  say(`switch any of them later in ${join(RECKON,'rules.json')}.`);
  const rules=[];
@@ -84,7 +85,10 @@ async function chooseRules(a){
  }
  // Keep any rules the user added by hand.
  for(const [id,r] of mine)if(!starter.rules.some(s=>s.id===id))rules.push(r);
- return {...starter,rules};
+ // Keep hand-tuned limits; new installs get the starter defaults.
+ const out={...starter,rules};
+ if(current?.limits&&typeof current.limits==='object')out.limits=current.limits;
+ return out;
 }
 
 async function install(){

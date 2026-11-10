@@ -1,8 +1,8 @@
 # Reckon buddy
 
-A small owl for Claude Code. It sits in the status line, and at most once per
-session it speaks up with one short question when a rule you switched on
-matches what just happened in the turn.
+A small owl for Claude Code. It sits in the status line, and a few times per
+session at most it speaks up with one short question when a rule you switched
+on matches what just happened in the turn.
 
 ```
 (-,-) zz reckon  |  <model> · $0.42 · ctx 31%      sleeping: no recent activity
@@ -82,11 +82,14 @@ so edits apply immediately. Each rule has:
 | `plan-ceremony` | the agent replied with a plan of 5 or more steps and changed nothing yet | skip the plan, start the smallest step? |
 | `session-length` | the session has run about 90 minutes; a neutral check-in, not a judgment | about 90 minutes in. still heading where you meant to? |
 
-Two limits are built in and cannot be switched off:
+A few nudges, never a nag:
 
-- **At most one interruption per session**, across all rules.
+- **At most 3 interruptions per session**, with **at least 10 minutes**
+  between them, and **no rule repeats in one session**. All three are tunable
+  under `"limits"` in `rules.json`:
+  `"limits": { "maxPerSession": 3, "cooldownMinutes": 10, "repeatRuleInSession": false }`
 - **Per-project quiet-down:** a rule that has fired 3 times on a project goes
-  quiet there.
+  quiet there. This one is fixed.
 
 ## Honest limits
 
@@ -103,7 +106,8 @@ Two limits are built in and cannot be switched off:
 ## The log
 
 `~/.reckon/buddy.log` records every time the owl spoke, every time a matching
-rule was held back (by the session cap or the quiet-down), and every error. Each
+rule was held back (by the session cap, the pause, the no-repeat rule or the
+quiet-down), and every error. Each
 line holds only:
 
 - a timestamp;

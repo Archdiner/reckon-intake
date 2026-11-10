@@ -69,12 +69,12 @@ try{
  assert.equal(run('status',statusIn('s1',1500)),'(o,o)> this grew past the ask - trim to the smallest version?  |  Model X · $0.42 · ctx 31%\n');
  pass('scope-growth fires on a short request that edited 6 files; status line shows the owl speaking');
 
- // Hard cap: one interruption per session, across all rules.
+ // A second rule matching right away is held back by the pause (default: 10 minutes).
  write([user('Keep it simple, fix the header.'),edits(6),user('Add a hero.'),edits(1,'background: linear-gradient(red, blue);')]);
  assert.equal(run('stop',stopIn('s1')),'');
- assert(logs().some(l=>l.kind==='skip'&&l.rule==='ornament'&&l.why==='session-cap'));
+ assert(logs().some(l=>l.kind==='skip'&&l.rule==='ornament'&&l.why==='cooldown'));
  assert.equal(run('stop',stopIn('s1',{stop_hook_active:true})),'');
- pass('a second rule matching in the same session is skipped and logged: at most one interruption per session');
+ pass('a second rule matching right after the first is skipped and logged: a pause between nudges');
 
  // Each starter rule, each in its own session.
  write([user('Fix the typo.'),said('Fixed it. I also added a dark mode toggle while I was at it.'),edits(1)]);
@@ -98,6 +98,42 @@ try{
  assert(logs().some(l=>l.kind==='skip'&&l.rule==='scope-growth'&&l.why==='project-quiet'));
  assert.match(msg(run('stop',stopIn('s10',{cwd:'/work/other-app'}))),/grew past the ask/);
  pass('a rule goes quiet on a project after 3 fires, and stays live on other projects');
+
+ // The loosened pace: up to 3 per session, a 10-minute pause, no rule twice.
+ write([user('Keep it simple, fix the header.'),edits(6)]);
+ assert.match(msg(run('stop',stopIn('s20',{cwd:'/work/pace-app'}))),/grew past the ask/);
+ write([user('Add a hero.'),edits(1,'background: linear-gradient(red, blue);')]);
+ assert.equal(run('stop',stopIn('s20',{cwd:'/work/pace-app',_now:Date.now()+5*60000})),'');
+ assert.match(msg(run('stop',stopIn('s20',{cwd:'/work/pace-app',_now:Date.now()+11*60000}))),/added flourish/);
+ assert.equal(run('stop',stopIn('s20',{cwd:'/work/pace-app',_now:Date.now()+22*60000})),'');
+ assert(logs().some(l=>l.kind==='skip'&&l.rule==='ornament'&&l.why==='repeat-rule'));
+ write([user('no, smaller'),user('Make the list.'),user('stop adding options'),user('actually just two items')]);
+ assert.match(msg(run('stop',stopIn('s20',{cwd:'/work/pace-app',_now:Date.now()+22*60000}))),/several redirects/);
+ write([user('Add pagination to the table, following the existing pattern used on the orders page, and keep the page size at twenty.'),said('Here is the plan:\n1. Read the table\n2. Add state\n3. Add buttons\n4. Wire handlers\n5. Test')]);
+ assert.equal(run('stop',stopIn('s20',{cwd:'/work/pace-app',_now:Date.now()+33*60000})),'');
+ assert(logs().some(l=>l.kind==='skip'&&l.rule==='plan-ceremony'&&l.why==='session-cap'));
+ pass('3 nudges per session with a 10-minute pause and no repeats by default; a 4th is capped and logged');
+
+ // Upgrade from the one-nudge version: a session that already spoke counts as one fire.
+ {const {createHash}=await import('node:crypto');
+  const h=createHash('sha256').update('legacy-s').digest('hex').slice(0,12);
+  mkdirSync(join(rh,'state'),{recursive:true});
+  writeFileSync(join(rh,'state',`s-${h}.json`),JSON.stringify({spoke:{rule:'scope-growth',at:Date.now()-3600000}}));
+  write([user('Add a hero.'),edits(1,'background: linear-gradient(red, blue);')]);
+  assert.match(msg(run('stop',stopIn('legacy-s'))),/added flourish/);}
+ pass('a session from the first version counts its one speech as one fire under the new limits');
+
+ // "limits" in rules.json is honored: tighter cap, no pause, repeats allowed.
+ writeFileSync(join(unitHome,'rules.json'),JSON.stringify({limits:{maxPerSession:5,cooldownMinutes:0,repeatRuleInSession:true},rules:[{id:'x',kind:'scope_growth',enabled:true,says:'too big?',params:{minFiles:1}}]}));
+ const uTr=join(unitHome,'t.jsonl');
+ writeFileSync(uTr,JSON.stringify({type:'user',message:{content:'hi'}})+'\n'+JSON.stringify({type:'assistant',message:{content:[{type:'tool_use',name:'Edit',input:{file_path:'/a'}}]}})+'\n');
+ const uIn=sid=>({session_id:sid,transcript_path:uTr,cwd:'/u'});
+ assert.match(B.stop(uIn('u3'))?.systemMessage||'',/too big/);
+ assert.match(B.stop(uIn('u3'))?.systemMessage||'',/too big/);
+ writeFileSync(join(unitHome,'rules.json'),JSON.stringify({limits:{maxPerSession:1,cooldownMinutes:0},rules:[{id:'x',kind:'scope_growth',enabled:true,says:'too big?',params:{minFiles:1}}]}));
+ assert.match(B.stop(uIn('u4'))?.systemMessage||'',/too big/);
+ assert.equal(B.stop(uIn('u4')),null);
+ pass('"limits" in rules.json tunes the cap, the pause and repeats; a cap of 1 behaves like the first version');
 
  // ---------- Robustness ----------
  assert.equal(run('stop','not json at all'),'');
@@ -149,6 +185,14 @@ try{
   const r2=install(h,'');assert.equal(r2.status,0);
   assert.equal(settingsOf(h).hooks.Stop.length,1);assert.equal(backups(h).length,1);
   assert.deepEqual(JSON.parse(readFileSync(join(h,'.reckon','rules.json'),'utf8')).rules.map(x=>x.enabled),[true,false,true,false,false]);
+  // A fresh install carries the default pace; a reinstall keeps hand-tuned limits and reworded lines.
+  const rjPath=join(h,'.reckon','rules.json');
+  assert.deepEqual(JSON.parse(readFileSync(rjPath,'utf8')).limits,{maxPerSession:3,cooldownMinutes:10,repeatRuleInSession:false});
+  const rj1=JSON.parse(readFileSync(rjPath,'utf8'));rj1.limits={maxPerSession:5,cooldownMinutes:2,repeatRuleInSession:true};rj1.rules[0].says='my own wording?';
+  writeFileSync(rjPath,JSON.stringify(rj1));
+  const r3=install(h,'\n\n\n\n\n');assert.equal(r3.status,0);
+  const rj2=JSON.parse(readFileSync(rjPath,'utf8'));
+  assert.deepEqual(rj2.limits,{maxPerSession:5,cooldownMinutes:2,repeatRuleInSession:true});assert.equal(rj2.rules[0].says,'my own wording?');
   // All answers empty on a fresh install: nothing turns on.
   const h2=tmp();install(h2,'');assert.deepEqual(JSON.parse(readFileSync(join(h2,'.reckon','rules.json'),'utf8')).rules.map(x=>x.enabled),[false,false,false,false,false]);}
  pass('installer, fresh: asks per rule, nothing on by default, adds both entries once, reinstall is idempotent');
