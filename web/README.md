@@ -52,7 +52,11 @@ No environment variables are needed.
   direction; the page only passes it `scenarios` and an `id`.
 - `lib/thought-map.ts`: the sketch's few fixed word rules (because, unless,
   if, questions, numbers). Transparent and local; nothing is scored.
-- `lib/sketch-content.ts`: the sketch's questions and pre-written answers.
+- `lib/sketch-content.ts`: everything the sketch shows: `SCENARIOS` (questions
+  and optional pre-written answers) and `SKETCH_COPY` (all framing text). To
+  swap in new material, edit this file only; the component holds no visible
+  text, and a test fails if that changes. Leaving out a scenario's `answer`
+  hides the "read an answer" step for it.
 - `lib/content.ts`: install command, links, and the "What happens to your
   sessions" facts.
 
@@ -60,6 +64,8 @@ No environment variables are needed.
 
 - Only the collector upload and hand-written findings are live today. Do not
   describe capture, inference or any companion behavior as working.
+- Effects of AI turn-taking on thinking are open research questions, not
+  established facts. Phrase them as questions or flagged hypotheses.
 - The trust facts in `lib/content.ts` are copied word for word from
   `worker/landing-page.js`. `test/content.test.mjs` fails if they drift.
 - No scores, metrics, rankings or gamified stats. No tracking of any kind.

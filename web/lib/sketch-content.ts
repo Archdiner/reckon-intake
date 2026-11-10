@@ -1,13 +1,91 @@
-// Pre-written content for the ExperienceSketch. Nothing here is generated at
-// runtime and no AI service is ever called. The answers are only shown after
-// the visitor has written and seen their own take.
+// Everything the ExperienceSketch shows lives in this file: the scenarios and
+// the framing copy around them. To swap in new material (for example
+// scenarios grounded in real session patterns), edit SCENARIOS and, if the
+// framing needs to change, SKETCH_COPY. The component itself holds no visible
+// text and does not need to change.
+//
+// Nothing here is generated at runtime and no AI service is ever called.
+// Answers are optional and are only shown after the visitor has written and
+// seen their own take.
 
 export type Scenario = {
+  /** Stable key; must be unique. */
   id: string;
+  /** Short label on the picker chip. */
   label: string;
+  /** The prompt the visitor answers in their own words. */
   question: string;
+  /** Placeholder inside the writing box. */
   placeholder: string;
-  answer: string[];
+  /** Optional pre-written answer, one string per paragraph. Leave out to hide the "read an answer" step. */
+  answer?: string[];
+};
+
+export type SketchCopy = {
+  eyebrow: string;
+  title: string;
+  titleEmphasis: string;
+  pickerLabel: string;
+  inputLabel: string;
+  showButton: string;
+  hintStart: string;
+  hintReady: string;
+  markLabels: { reason: string; condition: string; question: string; specific: string };
+  pageLabel: string;
+  callLabel: string;
+  marginLabel: string;
+  groupTitles: { reasons: string; conditions: string; questions: string; specifics: string };
+  emptyTitle: string;
+  emptyNote: string;
+  usualName: string;
+  usualSteps: string[];
+  nowName: string;
+  nowSteps: string[];
+  contrast: string;
+  readAnswer: string;
+  keepWriting: string;
+  another: string;
+  answerBadge: string;
+  answerNote: string;
+  closer: string;
+  disclaimer: string;
+};
+
+export const SKETCH_COPY: SketchCopy = {
+  eyebrow: "Interactive sketch",
+  title: "Before any answer:",
+  titleEmphasis: "what do you think?",
+  pickerLabel: "Choose a question",
+  inputLabel: "Your own take",
+  showButton: "See my thinking",
+  hintStart: "A few words is enough to start.",
+  hintReady: "Words like because, unless and if will light up.",
+  markLabels: { reason: "a reason", condition: "a condition", question: "an open question", specific: "a specific" },
+  pageLabel: "Your thinking",
+  callLabel: "Your call",
+  marginLabel: "What is in your take",
+  groupTitles: {
+    reasons: "Your reasons",
+    conditions: "Your conditions",
+    questions: "Still open for you",
+    specifics: "Your specifics",
+  },
+  emptyTitle: "A clear starting point",
+  emptyNote: "Add a because or an unless and watch the reasoning light up.",
+  usualName: "The usual loop",
+  usualSteps: ["Ask", "Wait", "Read an answer"],
+  nowName: "Just now",
+  nowSteps: ["Think", "See your thinking", "Then read, if you like"],
+  contrast: "The usual loop goes straight from your question to its answer. Here, the first thing on the screen was yours.",
+  readAnswer: "Now read an answer",
+  keepWriting: "Keep writing",
+  another: "Try another question",
+  answerBadge: "An answer",
+  answerNote: "pre-written, no AI called",
+  closer:
+    "Read it with your own take in hand: what would you keep, and what would you push back on? That feeling, thinking first and seeing it, is what Reckon is after. How to bring it into real work with AI is the open question.",
+  disclaimer:
+    "A sketch of a feeling, not a product feature. It runs in your browser with a few fixed word rules and pre-written answers. No AI is called, nothing you type leaves this page, and nothing is stored or measured.",
 };
 
 export const SCENARIOS: Scenario[] = [

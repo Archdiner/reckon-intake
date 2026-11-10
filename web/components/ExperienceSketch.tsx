@@ -10,40 +10,41 @@
  * appears. Replace this module wholesale when the direction is chosen; the
  * page only depends on the props below.
  *
+ * Content is isolated from behavior: every visible string and every scenario
+ * comes in through props from lib/sketch-content.ts (SCENARIOS, SKETCH_COPY).
+ * Swapping the material is an edit to that file only.
+ *
  * Runs entirely in the browser: a few fixed word rules (lib/thought-map.ts)
- * and pre-written answers (lib/sketch-content.ts). It calls no AI service,
- * makes no network requests, and stores or measures nothing.
+ * and pre-written content. It calls no AI service, makes no network requests,
+ * and stores or measures nothing.
  */
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import type { Scenario } from "@/lib/sketch-content";
+import type { Scenario, SketchCopy } from "@/lib/sketch-content";
 import { mapThought, wordCount, type Mark } from "@/lib/thought-map";
 import styles from "./ExperienceSketch.module.css";
 
 export type ExperienceSketchProps = {
-  /** Questions the visitor can pick from. Answers are pre-written. */
+  /** Questions the visitor can pick from. Answers, if any, are pre-written. */
   scenarios: Scenario[];
+  /** Every visible string in the module. */
+  copy: SketchCopy;
   /** Anchor id for the section. */
   id?: string;
 };
 
 type Phase = "write" | "map" | "answer";
 
-const MARK_LABEL: Record<Mark, string> = {
-  reason: "a reason",
-  condition: "a condition",
-  question: "an open question",
-  specific: "a specific",
-};
+const MARKS: Mark[] = ["reason", "condition", "question", "specific"];
 
-const GROUPS: Array<{ key: "reasons" | "conditions" | "questions" | "specifics"; title: string; mark: Mark }> = [
-  { key: "reasons", title: "Your reasons", mark: "reason" },
-  { key: "conditions", title: "Your conditions", mark: "condition" },
-  { key: "questions", title: "Still open for you", mark: "question" },
-  { key: "specifics", title: "Your specifics", mark: "specific" },
+const GROUPS: Array<{ key: "reasons" | "conditions" | "questions" | "specifics"; mark: Mark }> = [
+  { key: "reasons", mark: "reason" },
+  { key: "conditions", mark: "condition" },
+  { key: "questions", mark: "question" },
+  { key: "specifics", mark: "specific" },
 ];
 
-export default function ExperienceSketch({ scenarios, id = "sketch" }: ExperienceSketchProps) {
+export default function ExperienceSketch({ scenarios, copy, id = "sketch" }: ExperienceSketchProps) {
   const [index, setIndex] = useState(0);
   const [draft, setDraft] = useState("");
   const [phase, setPhase] = useState<Phase>("write");
@@ -53,6 +54,7 @@ export default function ExperienceSketch({ scenarios, id = "sketch" }: Experienc
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const scenario = scenarios[index];
+  const answer = scenario.answer ?? [];
   const words = wordCount(draft);
   const map = useMemo(() => mapThought(draft), [draft]);
   const present = new Set(map.segments.filter((s) => s.mark).map((s) => s.mark as Mark));
@@ -115,12 +117,12 @@ export default function ExperienceSketch({ scenarios, id = "sketch" }: Experienc
       <div className={styles.frame}>
         <header className={styles.top}>
           <div>
-            <p className={styles.eyebrow}>Interactive sketch</p>
+            <p className={styles.eyebrow}>{copy.eyebrow}</p>
             <h2 id={`${id}-title`} className={styles.title}>
-              Before any answer: <em>what do you think?</em>
+              {copy.title} <em>{copy.titleEmphasis}</em>
             </h2>
           </div>
-          <div className={styles.picker} role="group" aria-label="Choose a question">
+          <div className={styles.picker} role="group" aria-label={copy.pickerLabel}>
             {scenarios.map((s, i) => (
               <button key={s.id} type="button" className={styles.chip} aria-pressed={i === index} onClick={() => choose(i)}>
                 {s.label}
@@ -134,7 +136,7 @@ export default function ExperienceSketch({ scenarios, id = "sketch" }: Experienc
         {phase === "write" && (
           <div className={styles.work}>
             <label htmlFor={`${id}-draft`} className={styles.srOnly}>
-              Your own take
+              {copy.inputLabel}
             </label>
             <textarea
               id={`${id}-draft`}
@@ -154,22 +156,22 @@ export default function ExperienceSketch({ scenarios, id = "sketch" }: Experienc
             />
             <div className={styles.bar}>
               <p className={styles.legend} aria-hidden="true">
-                {(Object.keys(MARK_LABEL) as Mark[]).map((m) => (
+                {MARKS.map((m) => (
                   <span key={m} className={styles.legendItem} data-mark={m} data-on={present.has(m) || undefined}>
                     <i />
-                    {MARK_LABEL[m]}
+                    {copy.markLabels[m]}
                   </span>
                 ))}
               </p>
               <button type="button" className={styles.primary} onClick={show} disabled={!ready}>
-                See my thinking
+                {copy.showButton}
                 <kbd className={styles.kbd} aria-hidden="true">
                   ⌘/Ctrl ↵
                 </kbd>
               </button>
             </div>
             <p className={styles.hint}>
-              {ready ? "Words like because, unless and if will light up." : "A few words is enough to start."}
+              {ready ? copy.hintReady : copy.hintStart}
             </p>
           </div>
         )}
@@ -178,25 +180,25 @@ export default function ExperienceSketch({ scenarios, id = "sketch" }: Experienc
           <div className={styles.result} key={run}>
             <div className={styles.page}>
               <h3 className={styles.pageLabel} ref={mapRef} tabIndex={-1}>
-                Your thinking
+                {copy.pageLabel}
               </h3>
               <blockquote className={styles.quote} data-size={size}>
                 {quote}
               </blockquote>
               {map.call && (
                 <p className={styles.call}>
-                  <span>Your call</span>
+                  <span>{copy.callLabel}</span>
                   {map.call}
                 </p>
               )}
             </div>
 
-            <aside className={styles.margin} aria-label="What is in your take">
+            <aside className={styles.margin} aria-label={copy.marginLabel}>
               {groups.length ? (
                 groups.map((g, gi) => (
                   <div key={g.key} className={styles.group} style={{ "--g": `${1100 + gi * 180}ms` } as CSSProperties}>
                     <p className={styles.groupTitle} data-mark={g.mark}>
-                      {g.title}
+                      {copy.groupTitles[g.key]}
                     </p>
                     <ul>
                       {map[g.key].map((t) => (
@@ -207,73 +209,63 @@ export default function ExperienceSketch({ scenarios, id = "sketch" }: Experienc
                 ))
               ) : (
                 <div className={styles.group} style={{ "--g": "1000ms" } as CSSProperties}>
-                  <p className={styles.groupTitle}>A clear starting point</p>
-                  <p className={styles.groupNote}>Add a because or an unless and watch the reasoning light up.</p>
+                  <p className={styles.groupTitle}>{copy.emptyTitle}</p>
+                  <p className={styles.groupNote}>{copy.emptyNote}</p>
                 </div>
               )}
             </aside>
 
             <div className={styles.contrast}>
               <div className={styles.loopRow} data-kind="usual">
-                <span className={styles.loopName}>The usual loop</span>
+                <span className={styles.loopName}>{copy.usualName}</span>
                 <ol>
-                  <li>Ask</li>
-                  <li>Wait</li>
-                  <li>Read an answer</li>
+                  {copy.usualSteps.map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
                 </ol>
               </div>
               <div className={styles.loopRow} data-kind="now">
-                <span className={styles.loopName}>Just now</span>
+                <span className={styles.loopName}>{copy.nowName}</span>
                 <ol>
-                  <li>Think</li>
-                  <li>See your thinking</li>
-                  <li>Then read, if you like</li>
+                  {copy.nowSteps.map((s) => (
+                    <li key={s}>{s}</li>
+                  ))}
                 </ol>
               </div>
-              <p className={styles.contrastText}>
-                The usual loop starts at the answer, so this part never happens. Here, the first thing on the screen was
-                yours.
-              </p>
+              <p className={styles.contrastText}>{copy.contrast}</p>
               <div className={styles.actions}>
-                {phase === "map" && (
+                {phase === "map" && answer.length > 0 && (
                   <button type="button" className={styles.primary} onClick={() => setPhase("answer")}>
-                    Now read an answer
+                    {copy.readAnswer}
                   </button>
                 )}
                 <button type="button" className={styles.secondary} onClick={edit}>
-                  Keep writing
+                  {copy.keepWriting}
                 </button>
                 <button type="button" className={styles.link} onClick={() => choose((index + 1) % scenarios.length)}>
-                  Try another question
+                  {copy.another}
                 </button>
               </div>
             </div>
 
-            {phase === "answer" && (
-              <div className={styles.answer} ref={answerRef} tabIndex={-1} aria-label="Pre-written answer">
+            {phase === "answer" && answer.length > 0 && (
+              <div className={styles.answer} ref={answerRef} tabIndex={-1} aria-label={copy.answerBadge}>
                 <div className={styles.answerHead}>
-                  <span className={styles.badge}>An answer</span>
-                  <span className={styles.answerNote}>pre-written, no AI called</span>
+                  <span className={styles.badge}>{copy.answerBadge}</span>
+                  <span className={styles.answerNote}>{copy.answerNote}</span>
                 </div>
-                {scenario.answer.map((p, i) => (
+                {answer.map((p, i) => (
                   <p key={i} className={styles.answerPara} style={{ "--d": `${i * 140}ms` } as CSSProperties}>
                     {p}
                   </p>
                 ))}
-                <p className={styles.closer}>
-                  Read it with your own take in hand: what would you keep, and what would you push back on? That feeling,
-                  thinking first and seeing it, is what Reckon is after. How to bring it into real work with AI is the
-                  open question.
-                </p>
+                <p className={styles.closer}>{copy.closer}</p>
               </div>
             )}
           </div>
         )}
       </div>
-      <p className={styles.disclaimer}>
-        A sketch of a feeling, not a product feature. It runs in your browser with a few fixed word rules and
-        pre-written answers. No AI is called, nothing you type leaves this page, and nothing is stored or measured.
-      </p>
+      <p className={styles.disclaimer}>{copy.disclaimer}</p>
     </section>
   );
 }

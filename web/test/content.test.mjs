@@ -7,6 +7,7 @@ import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { TRUST, INSTALL_COMMAND, REPO_URL, SIGN_IN_URL, NOT_LIST } from "../lib/content.ts";
 import * as worker from "../../worker/landing-page.js";
+import { SCENARIOS, SKETCH_COPY } from "../lib/sketch-content.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const strip = (s) => s.replace(/<[^>]+>/g, "").trim();
@@ -58,9 +59,37 @@ test("no tracking, storage, network calls or dashboard widgets in the site", () 
   }
 });
 
-test("the centerpiece module keeps its slot comment and sketch label", () => {
+test("the centerpiece module keeps its slot comment and sketch labeling", () => {
   const src = readFileSync(join(root, "components/ExperienceSketch.tsx"), "utf8");
   assert.match(src, /THE place where Reckon's real interaction will land/);
-  assert.match(src, /Interactive sketch/);
-  assert.match(src, /No AI is called, nothing you type leaves this page/);
+  assert.equal(SKETCH_COPY.eyebrow, "Interactive sketch");
+  assert.match(SKETCH_COPY.disclaimer, /No AI is called, nothing you type leaves this page, and nothing is stored or measured/);
+});
+
+test("sketch content is isolated: the component holds no scenario or framing text", () => {
+  const src = readFileSync(join(root, "components/ExperienceSketch.tsx"), "utf8");
+  const strings = [];
+  const collect = (v) => (typeof v === "string" ? strings.push(v) : Object.values(v).forEach(collect));
+  collect(SKETCH_COPY);
+  for (const s of SCENARIOS) collect({ ...s, id: "" });
+  for (const t of strings.filter((t) => t.length > 3)) assert(!src.includes(t), `component hardcodes "${t}"`);
+  assert.equal(new Set(SCENARIOS.map((s) => s.id)).size, SCENARIOS.length);
+  assert(SCENARIOS.length > 0);
+});
+
+test("effects of AI turn-taking on thinking are framed as questions, not facts", () => {
+  const asserted = [
+    /makes handing over your thinking/i,
+    /turn-taking does it/i,
+    /starts at the answer, so/i,
+    /this part never happens/i,
+    /is the half that gets skipped/i,
+    /long enough to let go of the problem/i,
+    /invites a yes, not a judgment/i,
+    /tends to get shorter/i,
+  ];
+  for (const f of files) {
+    const text = readFileSync(f, "utf8");
+    for (const re of asserted) assert(!re.test(text), `${re} in ${f}`);
+  }
 });

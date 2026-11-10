@@ -3,26 +3,26 @@ import InstallCommand from "@/components/InstallCommand";
 import Mark from "@/components/Mark";
 import RevealObserver from "@/components/RevealObserver";
 import { INSTALL_COMMAND, NOT_LIST, REPO_URL, SIGN_IN_URL, SUPPORTED_SOURCES, TRUST } from "@/lib/content";
-import { SCENARIOS } from "@/lib/sketch-content";
+import { SCENARIOS, SKETCH_COPY } from "@/lib/sketch-content";
 
 const LOOP = [
   {
     word: "Ask",
-    text: "You hand over the question while it is still half-formed. The half you had not worked out yet is the half that gets skipped.",
+    text: "What if the question leaves your hands while it is still half-formed? Does the half you had not worked out yet get skipped?",
   },
   {
     word: "Wait",
-    text: "A few seconds is long enough to let go of the problem. When the answer lands, you read it cold.",
+    text: "What if the wait is where the problem slips away? When the answer lands, are you still holding it, or reading it cold?",
   },
   {
     word: "Answer",
-    text: "A finished-looking reply invites a yes, not a judgment. Next turn, your own message tends to get shorter.",
+    text: "Does a finished-looking reply invite a yes more than a judgment? And does your next message get shorter?",
   },
 ];
 
 const QUESTIONS = [
   "What would make thinking with AI feel rewarding, not like extra work?",
-  "When does taking turns help you think, and when does it quietly take over?",
+  "When does taking turns help you think, and does it ever quietly take over?",
   "What would you want to see about your own habits, if you could?",
 ];
 
@@ -86,9 +86,9 @@ export default function Home() {
               Keep the thinking <em>yours.</em>
             </h1>
             <p className="hero-sub">
-              Most work with AI runs on one loop: you ask, you wait, it answers. That shape makes handing over your
-              thinking the easy default. Reckon is a research pilot about rethinking the interaction itself, so that
-              thinking with AI feels rewarding and stays visibly your own.
+              Most work with AI runs on one loop: you ask, you wait, it answers. Does that shape quietly make handing
+              over your thinking the easy default? Reckon is a research pilot trying to find out, and rethinking the
+              interaction itself so that thinking with AI feels rewarding and stays visibly your own.
             </p>
             <div className="hero-actions">
               <a className="btn" href="#sketch">
@@ -102,19 +102,19 @@ export default function Home() {
         </section>
 
         <div className="container sketch-wrap">
-          <ExperienceSketch scenarios={SCENARIOS} id="sketch" />
+          <ExperienceSketch scenarios={SCENARIOS} copy={SKETCH_COPY} id="sketch" />
         </div>
 
         <section className="section" id="loop" aria-labelledby="loop-title">
           <div className="container">
             <div className="section-head" data-reveal>
-              <p className="eyebrow">The problem</p>
+              <p className="eyebrow">The question</p>
               <h2 id="loop-title" className="display">
                 Ask. Wait. Answer. <em>Repeat.</em>
               </h2>
               <p className="lede">
-                Nobody decides to stop thinking. The turn-taking does it quietly: every exchange starts at the answer,
-                and your own reasoning rarely gets a turn of its own.
+                Nobody sets out to stop thinking. So what does the turn-taking itself do? If each exchange centers on
+                the answer, when does your own reasoning get a turn of its own?
               </p>
             </div>
             <ol className="loop" data-reveal>
@@ -137,7 +137,7 @@ export default function Home() {
             <div data-reveal>
               <p className="eyebrow">The open question</p>
               <h2 id="open-title" className="display">
-                So what replaces the loop? <em>We do not know yet.</em>
+                So what could replace the loop? <em>We do not know yet.</em>
               </h2>
               <p className="lede">
                 Reckon exists to rethink the interaction itself, not to add a feature to the chat box. We have not
