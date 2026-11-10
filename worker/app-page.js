@@ -1,21 +1,24 @@
-// Signed-in app page served at GET /browser/app by the receiver worker.
-// Plain server-rendered HTML; every dynamic value is escaped.
+// Signed-in page served at GET /browser/app by the receiver worker.
+// Reads like a receipt or a short letter, not a dashboard: what you sent, what
+// came back, what happens next. One column of plain text and lists; every
+// dynamic value is escaped.
 import {PAGE_STYLE,HTML_HEADERS} from './landing-page.js';
 
 export const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 
 export function formatBytes(n){
- if(!Number.isFinite(n)||n<0)return 'unknown';
+ if(!Number.isFinite(n)||n<0)return 'unknown size';
  if(n<1024)return n+' B';
  const units=['KB','MB','GB'];let v=n/1024,i=0;
  while(v>=1024&&i<units.length-1){v/=1024;i++;}
  return (v>=10?String(Math.round(v)):v.toFixed(1))+' '+units[i];
 }
 
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
 function formatDate(value){
- if(typeof value!=='string'||!value)return 'unknown';
+ if(typeof value!=='string'||!value)return null;
  const d=new Date(value);
- return Number.isNaN(d.getTime())?escapeHtml(value):d.toISOString().slice(0,10);
+ return Number.isNaN(d.getTime())?escapeHtml(value):`${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
 function safeUrl(value){
@@ -23,34 +26,25 @@ function safeUrl(value){
  try{const u=new URL(value);return ['https:','http:'].includes(u.protocol)?u.href:null;}catch{return null;}
 }
 
-const STATUS_LABEL={accepted:'Received',finalizing:'Being checked',reserved:'Started, not finished',expired:'Not finished (expired)'};
+const STATUS_TEXT={accepted:'Received.',finalizing:'Being checked now.',reserved:'Started, not finished yet.',expired:'Started, not finished. This attempt has expired.'};
 
-function uploadsSection(uploads){
- if(!uploads.length)return '<p>No uploads yet. Run the collector from the <a href="/">home page</a> to send your first one.</p>';
- const rows=uploads.map(u=>`<tr><td>${formatDate(u.date)}</td><td>${escapeHtml(formatBytes(u.size))}</td><td>${escapeHtml(STATUS_LABEL[u.status]||u.status)}</td></tr>`).join('');
- return `<div class="table"><table><thead><tr><th scope="col">Date</th><th scope="col">Size</th><th scope="col">Status</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+function sentSection(uploads){
+ if(!uploads.length)return '<p>Nothing yet. When you run the collector from the <a href="/">home page</a>, your upload will be listed here.</p>';
+ const items=uploads.map(u=>{
+  const date=formatDate(u.date);
+  return `<li>${date?date+': a':'A'} ${escapeHtml(formatBytes(u.size))} masked archive. ${escapeHtml(STATUS_TEXT[u.status]||u.status)}</li>`;
+ }).join('');
+ return `<ul>${items}</ul>`;
 }
 
-function findingsSection(findings){
+function backSection(findings){
  const items=(Array.isArray(findings)?findings:[]).filter(f=>f&&typeof f.title==='string'&&f.title);
- if(!items.length)return '<p>No findings yet. In this pilot, findings are written by hand. They will appear here when they are ready.</p>';
- return '<ul class="findings">'+items.map(f=>{
-  const url=safeUrl(f.url),title=escapeHtml(f.title);
-  const date=f.date?` <span class="meta">${formatDate(f.date)}</span>`:'';
-  return `<li>${url?`<a href="${escapeHtml(url)}" rel="noopener noreferrer">${title}</a>`:title}${date}</li>`;
- }).join('')+'</ul><p class="hint">Findings are observations and hypotheses, not verdicts.</p>';
+ if(!items.length)return '<p>Nothing yet. In this pilot, findings are written by hand. They will appear here when they are ready.</p>';
+ return '<ul>'+items.map(f=>{
+  const url=safeUrl(f.url),title=escapeHtml(f.title),date=formatDate(f.date);
+  return `<li>${url?`<a href="${escapeHtml(url)}" rel="noopener noreferrer">${title}</a>`:title}${date?`<span class="quiet">, ${date}</span>`:''}</li>`;
+ }).join('')+'</ul><p>These are observations and hypotheses about your sessions, not verdicts. You decide what, if anything, to do differently.</p>';
 }
-
-const APP_STYLE=`
-dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 16px;margin:0 0 12px}
-dt{color:var(--muted)}
-dd{margin:0;overflow-wrap:anywhere}
-.table{overflow-x:auto}
-table{border-collapse:collapse;width:100%;font-size:.95rem}
-th,td{text-align:left;padding:8px 12px 8px 0;border-bottom:1px solid var(--line);white-space:nowrap}
-th{color:var(--muted);font-weight:600}
-.findings .meta{color:var(--muted);font-size:.9rem;white-space:nowrap}
-`;
 
 export function renderAppPage({email,reckonId,uploads=[],findings=[]}){
  return `<!doctype html>
@@ -60,30 +54,30 @@ export function renderAppPage({email,reckonId,uploads=[],findings=[]}){
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Your Reckon page</title>
-<style>${PAGE_STYLE}${APP_STYLE}</style>
+<style>${PAGE_STYLE}</style>
 </head>
 <body>
 <div class="wrap">
 <header>
-<a href="/" aria-label="Reckon home"><img src="/reckon-wordmark.svg" alt="Reckon" width="126" height="28"></a>
-<nav class="nav"><a href="/cdn-cgi/access/logout">Sign out</a></nav>
+<a href="/" aria-label="Reckon home"><img src="/reckon-wordmark.svg" alt="Reckon" width="108" height="24"></a>
+<a href="/cdn-cgi/access/logout">Sign out</a>
 </header>
 <main>
 <h1>Your Reckon page</h1>
-<section aria-labelledby="account">
-<h2 id="account">Account</h2>
-<dl><dt>Signed in as</dt><dd>${escapeHtml(email)}</dd><dt>Reckon ID</dt><dd><code>${escapeHtml(reckonId)}</code></dd></dl>
+<p>You are signed in as ${escapeHtml(email)}. Your Reckon ID is <code>${escapeHtml(reckonId)}</code>.</p>
+
+<section aria-labelledby="sent">
+<h2 id="sent">What you sent</h2>
+${sentSection(uploads)}
 </section>
-<section aria-labelledby="uploads">
-<h2 id="uploads">Your uploads</h2>
-${uploadsSection(uploads)}
+
+<section aria-labelledby="back">
+<h2 id="back">What came back</h2>
+${backSection(findings)}
 </section>
-<section aria-labelledby="findings">
-<h2 id="findings">What came out of it</h2>
-${findingsSection(findings)}
-</section>
+
 <section aria-labelledby="next">
-<h2 id="next">What's next</h2>
+<h2 id="next">What happens next</h2>
 <ul>
 <li>The pilot is testing which reflections actually change how people work.</li>
 <li>Support for more session sources is planned.</li>
