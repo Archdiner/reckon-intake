@@ -91,11 +91,22 @@ export class ReckonRegistry {
  async fetch(request){
   try{
    if(request.method!=='POST')throw fail('Not found',404);
-   const action=new URL(request.url).pathname.slice(1);const allowed=['identify','reserveBatch','checkBatch','acquire','release','markAccepted','requestBudget','renew','beginCommit','staleCommits','releaseFailedCommit'];
+   const action=new URL(request.url).pathname.slice(1);const allowed=['identify','reserveBatch','checkBatch','acquire','release','markAccepted','requestBudget','renew','beginCommit','staleCommits','releaseFailedCommit','listUploads'];
    if(!allowed.includes(action))throw fail('Not found',404);
    const text=await request.text();if(text.length>16384)throw fail('Request too large',413);
    const value=JSON.parse(text),result=await this[action](value);return Response.json({result:result??null});
   }catch(e){return Response.json({error:e.status?e.message:'Registry unavailable'},{status:e.status||503});}
+ }
+ // Read-only view of one principal's own uploads for the signed-in app page.
+ // Takes only the authenticated principal; returns date, size and status, never
+ // digests or another participant's entries.
+ async listUploads({principal}={}){
+  if(typeof principal!=='string'||!principal||principal.length>128)throw fail('Verified identity missing');
+  const row=await this.state.storage.get('principal:'+principal);if(!row||row.revoked)throw fail('Account not active');
+  const now=Date.now(),seen=new Set(),out=[];
+  for(const x of acceptedHistory){if(x.participant!==row.participant||seen.has(x.digest))continue;seen.add(x.digest);out.push({date:x.accepted_at||x.created_at||x.date||null,size:x.size,status:'accepted'});}
+  for(const x of (await this.state.storage.get('reservation-ledger'))||[]){if(x.principal!==principal||seen.has(x.digest))continue;seen.add(x.digest);out.push({date:x.created_at||x.day||null,size:x.size,status:x.accepted?'accepted':x.committing?'finalizing':x.expires>now?'reserved':'expired'});}
+  return out.sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
  }
  async release(id){return this.state.storage.transaction(async tx=>{const rows=(await tx.get('leases'))||[];await tx.put('leases',rows.filter(x=>x.id!==id));});}
  async renew(id){return this.state.storage.transaction(async tx=>{const rows=(await tx.get('leases'))||[];const row=rows.find(x=>x.id===id&&x.expires>Date.now());if(!row)throw fail('Admission expired; retry same archive',409);row.expires=Date.now()+120000;await tx.put('leases',rows);});}

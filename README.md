@@ -20,8 +20,13 @@ with it.
   standard library only; no dependencies to install.
 - `worker/` - the receiver: a Cloudflare worker plus a Durable Object identity
   registry, archive validation, upload admission limits and private-storage
-  commit logic. `launcher.js` is the tiny redirect worker behind the stable
-  public URL.
+  commit logic. `launcher.js` is the tiny worker behind the stable public URL:
+  it serves the landing page at `/` and redirects everything else it handles
+  to the receiver.
+- `worker/landing-page.js` - the public landing page HTML, served at `GET /` by
+  both workers. `worker/app-page.js` - the signed-in page at `GET /browser/app`
+  (account, your uploads, findings), behind the same Cloudflare Access identity
+  path as the other `/browser/*` routes. Health JSON stays at `/health`.
 - `tools/build-client-assets.mjs` - regenerates `worker/client-assets.js`
   (the served installer + client bundle) from `install.sh` and `client/`.
 - `worker/test-*.mjs` - the test suites (`npm test` inside `worker/`).
@@ -90,8 +95,8 @@ Face token.
    `/browser/*` routes.
 4. Supply your deployment-private values outside git: the owner identity and
    extra-upload allowances in `worker/identity-registry.js`, and your
-   accepted-upload history as `worker/accepted-history.js` (the committed
-   versions are placeholders).
+   accepted-upload history as `worker/accepted-history.js`, and per-participant
+   findings as `worker/findings.js` (the committed versions are placeholders).
 5. `npm ci && npm test` inside `worker/`, then `wrangler deploy -c <config>`.
 
 ## Tests
@@ -102,9 +107,9 @@ npm ci
 npm test
 ```
 
-Four suites: receiver context/auth fail-closed behavior, single-upload
-invariants, upload-cap semantics, and a real Miniflare (SQLite Durable Object)
-platform test. Public tests use synthetic fixtures only; the live deployment's
+Five suites: receiver context/auth fail-closed behavior, single-upload
+invariants, upload-cap semantics, a real Miniflare (SQLite Durable Object)
+platform test, and the landing and signed-in web pages. Public tests use synthetic fixtures only; the live deployment's
 private history is exercised through the same ledger code paths.
 
 ## License

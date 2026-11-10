@@ -5,6 +5,9 @@ import {installer,clientBase64} from './client-assets.js';
 import {uploadFiles} from '@huggingface/hub';
 import {createHash} from 'node:crypto';
 import {validateTarGz} from './validate.js';
+import {landingResponse} from './landing-page.js';
+import {appResponse} from './app-page.js';
+import {findingsByParticipant} from './findings.js';
 const REPO='carneasado/coding-session-intake',CHUNK=3*1024**2,MAX=512*1024**2;
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const hex=s=>typeof s==='string'&&/^[0-9a-f]{64}$/.test(s);
@@ -25,6 +28,7 @@ async function registry(env,action,value){
 async function handle(request,env,ctx,admission){
  const url=new URL(request.url);
  let participant,tokenHash,principal,reckonId,browser=false;
+ if(request.method==='GET'&&url.pathname==='/')return landingResponse();
  if(url.pathname==='/browser'||url.pathname.startsWith('/browser/')){
   if(!ctx?.access)throw fail('Browser sign-in required',401);
   const identity=await ctx.access.getIdentity();
@@ -33,6 +37,7 @@ async function handle(request,env,ctx,admission){
   const account=await registry(env,'identify',{email:identity.email,principal:identity.user_uuid});
   participant=account.participant;reckonId=account.reckon_id;principal=account.principal;browser=true;tokenHash=sha('reckon-access-v1:'+principal);
   if(request.method==='GET'&&url.pathname==='/browser/identity')return Response.json({email:identity.email,reckon_id:reckonId},{headers:{'cache-control':'private, no-store'}});
+  if(request.method==='GET'&&url.pathname==='/browser/app'){const uploads=await registry(env,'listUploads',{principal});const findings=Object.hasOwn(findingsByParticipant,participant)?findingsByParticipant[participant]:[];return appResponse({email:identity.email,reckonId,uploads,findings});}
   if(request.method==='GET'&&url.pathname==='/browser/login')return new Response('Signed in to Reckon. Return to your terminal.',{headers:{'content-type':'text/plain; charset=utf-8','cache-control':'private, no-store'}});
   url.pathname=url.pathname.slice('/browser'.length);
   if(request.method==='POST'&&!['/v2/begin','/v2/part','/v2/finalize'].includes(url.pathname))throw fail('Browser uploads require v2',404);

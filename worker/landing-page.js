@@ -1,0 +1,100 @@
+// Public landing page served at GET / by both the launcher worker and the
+// receiver worker. Static HTML with inline CSS; no scripts, no external assets
+// beyond the receiver's own /reckon-wordmark.svg.
+export const INSTALL_COMMAND='curl -fsSL https://reckon-intake.aarizvi06.workers.dev/install.sh | bash';
+
+export const PAGE_STYLE=`
+:root{--accent:#087f9c;--ink:#1b1f23;--muted:#57606a;--line:#d8dee4;--bg:#ffffff;--soft:#f5f7f9}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+.wrap{max-width:720px;margin:0 auto;padding:24px 16px 48px}
+header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding-bottom:16px;border-bottom:1px solid var(--line)}
+header img{display:block;height:28px;width:auto}
+a{color:var(--accent)}
+a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.nav a{font-weight:600;text-decoration:none}
+.nav a:hover{text-decoration:underline}
+h1{font-size:1.9rem;line-height:1.25;margin:40px 0 12px}
+h2{font-size:1.2rem;margin:40px 0 8px}
+p{margin:0 0 12px}
+.lead{font-size:1.1rem;color:var(--muted)}
+ol,ul{padding-left:1.3rem;margin:0 0 12px}
+li{margin:0 0 8px}
+pre{margin:12px 0;padding:14px 16px;background:var(--soft);border:1px solid var(--line);border-left:3px solid var(--accent);border-radius:4px;overflow-x:auto}
+code{font:14px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+pre code{user-select:all;-webkit-user-select:all;white-space:pre-wrap;overflow-wrap:anywhere}
+.hint{font-size:.9rem;color:var(--muted)}
+.button{display:inline-block;padding:10px 18px;border-radius:4px;background:var(--accent);color:#fff;font-weight:600;text-decoration:none}
+.button:hover{background:#066a83}
+footer{margin-top:48px;padding-top:16px;border-top:1px solid var(--line);font-size:.9rem;color:var(--muted)}
+@media (max-width:480px){h1{font-size:1.55rem;margin-top:28px}code{font-size:13px}}
+`;
+
+export const LANDING_PAGE=`<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reckon: see how you actually work with AI</title>
+<meta name="description" content="Reckon shows you how you actually work with AI, from sessions you already have. One upload, then findings come to you.">
+<style>${PAGE_STYLE}</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<a href="/" aria-label="Reckon home"><img src="/reckon-wordmark.svg" alt="Reckon" width="126" height="28"></a>
+<nav class="nav"><a href="/browser/app">Sign in</a></nav>
+</header>
+<main>
+<h1>See how you actually work with AI.</h1>
+<p class="lead">Reckon shows you what you decided, what you handed to the agent, and what happened next. It works from sessions you already have. One upload, then findings come to you. No ongoing effort.</p>
+<p>It is for anyone who uses AI chatbots or coding tools and wants to stay sharp, not dependent.</p>
+
+<h2 id="get">Get the collector</h2>
+<p>Run this in a terminal on macOS or Linux:</p>
+<pre><code>${INSTALL_COMMAND}</code></pre>
+<p class="hint">Click the command to select all of it. The script is public, so you can read it before you run it.</p>
+
+<h2>How it works</h2>
+<ol>
+<li>One command collects your newest local AI sessions, masks key-like secrets in a copy, and uploads only the masked copy.</li>
+<li>We read it and write findings.</li>
+<li>You see the findings on your private page and decide what to do differently.</li>
+</ol>
+
+<h2>What it reads today</h2>
+<p>Today the collector supports local coding assistants: Claude Code, Codex, Cursor, Gemini, Antigravity, OpenCode, VS Code Copilot and Pi. Support for more session sources, such as general chatbots, is planned.</p>
+
+<h2>What you get</h2>
+<p>Findings are observations and hypotheses about your sessions. They are not verdicts. You decide what, if anything, to change.</p>
+
+<h2>What it is not</h2>
+<ul>
+<li>No scores.</li>
+<li>No rankings.</li>
+<li>No dependency meter.</li>
+<li>No surveillance.</li>
+<li>No guilt trips.</li>
+</ul>
+
+<p><a class="button" href="/browser/app">Sign in</a></p>
+</main>
+<footer>
+<p>Reckon is a research pilot. The original export stays on your machine; only the masked copy is uploaded, to private storage.</p>
+</footer>
+</div>
+</body>
+</html>
+`;
+
+export const HTML_HEADERS={
+ 'content-type':'text/html; charset=utf-8',
+ 'x-content-type-options':'nosniff',
+ 'content-security-policy':"default-src 'none'; style-src 'unsafe-inline'; img-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+ 'referrer-policy':'no-referrer',
+};
+
+export function landingResponse(){
+ return new Response(LANDING_PAGE,{headers:{...HTML_HEADERS,'cache-control':'public, max-age=300'}});
+}
