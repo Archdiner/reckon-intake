@@ -164,7 +164,7 @@ export default function ExperienceSketch({ scenarios, id = "sketch" }: Experienc
               <button type="button" className={styles.primary} onClick={show} disabled={!ready}>
                 See my thinking
                 <kbd className={styles.kbd} aria-hidden="true">
-                  Ctrl ↵
+                  ⌘/Ctrl ↵
                 </kbd>
               </button>
             </div>
