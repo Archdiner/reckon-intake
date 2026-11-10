@@ -3,6 +3,7 @@
 // came back, what happens next. One column of plain text and lists; every
 // dynamic value is escaped.
 import {PAGE_STYLE,HTML_HEADERS,SESSIONS_FACTS_HTML} from './landing-page.js';
+import {createHash} from 'node:crypto';
 
 export const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 
@@ -26,6 +27,12 @@ function safeUrl(value){
  try{const u=new URL(value);return ['https:','http:'].includes(u.protocol)?u.href:null;}catch{return null;}
 }
 
+// Outcome sources must be https; anything else is shown without a link.
+function safeHttpsUrl(value){
+ const url=safeUrl(value);
+ return url&&url.startsWith('https:')?url:null;
+}
+
 const STATUS_TEXT={accepted:'Received.',finalizing:'Being checked now.',reserved:'Started, not finished yet.',expired:'Started, not finished. This attempt has expired.'};
 
 function sentSection(uploads){
@@ -46,7 +53,85 @@ function backSection(findings){
  }).join('')+'</ul><p>These are observations and hypotheses about your sessions, not verdicts. You decide what, if anything, to do differently.</p>';
 }
 
-export function renderAppPage({email,reckonId,uploads=[],findings=[]}){
+
+// "Calls we noticed": candidate decisions a deterministic rule pass found in
+// the participant's upload. Entries are injected at deploy time (calls.js).
+const CALL_TYPE_LABEL={budget_cap:'Budget or limit',merge_or_release_gate:'Merge or release gate',verification_demand:'Asked for proof',go_ahead:'Go-ahead',launch_or_scope_call:'Scope call'};
+const REVIEWED_PREFIX='reckon.reviewed.v1:';
+
+// The only script on the page. No network, no external files. "Reviewed" means
+// the participant acknowledged an entry, nothing more. Each mark is stored in
+// this browser under a key that includes the account's opaque Reckon ID and
+// the entry id, so another account signed in on the same browser never sees
+// these marks. Without an account id it stores nothing and shows no buttons.
+export const CALLS_SCRIPT=`(function(){var sec=document.getElementById("calls-section");if(!sec)return;var acct=sec.getAttribute("data-account");if(!acct)return;var P=${JSON.stringify(REVIEWED_PREFIX)}+acct+":";
+function get(k){try{return localStorage.getItem(k)==="1";}catch(e){return false;}}
+function put(k,on){try{if(on)localStorage.setItem(k,"1");else localStorage.removeItem(k);}catch(e){}}
+var items=sec.querySelectorAll("[data-call-id]");for(var i=0;i<items.length;i++)(function(li){var k=P+li.getAttribute("data-call-id"),b=li.querySelector("button.review");if(!b)return;
+function show(on){li.classList.toggle("reviewed",on);b.setAttribute("aria-pressed",on?"true":"false");b.textContent=on?"Reviewed":"Mark reviewed";}
+show(get(k));b.hidden=false;b.addEventListener("click",function(){var on=!get(k);put(k,on);show(on);});})(items[i]);
+var note=document.getElementById("calls-local-note");if(note)note.hidden=false;})();`;
+export const CALLS_SCRIPT_HASH='sha256-'+createHash('sha256').update(CALLS_SCRIPT).digest('base64');
+
+export function normalizeCalls(calls){
+ return (Array.isArray(calls)?calls:[]).filter(c=>c&&typeof c.id==='string'&&c.id&&typeof c.quote==='string'&&c.quote);
+}
+
+function callItem(c){
+ const label=CALL_TYPE_LABEL[c.type]||'Call';
+ const date=typeof c.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(c.date)?formatDate(c.date):null;
+ const meta=[escapeHtml(label),typeof c.project==='string'&&c.project?escapeHtml(c.project):null,date||'date unclear'].filter(Boolean).join(' <span aria-hidden="true">&middot;</span> ');
+ const outcome=c.status==='checked'&&c.outcome&&typeof c.outcome.text==='string'&&c.outcome.text?c.outcome:null;
+ let status;
+ if(outcome){
+  const src=safeHttpsUrl(outcome.source_url);
+  status=`<p class="call-status checked">${escapeHtml(outcome.text)}${src?` <a href="${escapeHtml(src)}" rel="noopener noreferrer">Source</a>`:''}</p>`;
+ }else{
+  const locator=c.check_target&&typeof c.check_target.locator==='string'&&c.check_target.locator?c.check_target.locator:null;
+  status=`<p class="call-status">Not checked.${locator?` <span class="where">Where to check: <code>${escapeHtml(locator)}</code></span>`:''}</p>`;
+ }
+ return `<li class="call" data-call-id="${escapeHtml(c.id)}">
+<p class="call-meta">${meta}</p>
+<blockquote class="call-quote">${escapeHtml(c.quote)}</blockquote>
+${status}
+<button type="button" class="review" aria-pressed="false" hidden>Mark reviewed</button>
+</li>`;
+}
+
+function callsSection(calls,reckonId){
+ if(!calls.length)return '';
+ const account=typeof reckonId==='string'&&reckonId?` data-account="${escapeHtml(reckonId)}"`:'';
+ return `
+<section aria-labelledby="calls" class="calls" id="calls-section"${account}>
+<h2 id="calls">Calls we noticed in your sessions</h2>
+<p>A rule pass over your upload pulled out moments that look like decisions - a budget, a merge gate, a go-ahead. Rules misread sometimes, so treat these as candidates. 'Not checked' means nobody has looked at what happened next, not that it went wrong.</p>
+<ol class="call-list">
+${calls.map(callItem).join('\n')}
+</ol>
+<p class="quiet" id="calls-local-note" hidden>Marks stay on this device, in this browser.</p>
+<script>${CALLS_SCRIPT}</script>
+</section>
+`;
+}
+
+const CALLS_STYLE=`
+.call-list{list-style:none;padding:0;margin:20px 0 14px}
+.call{padding:20px 0;border-top:1px solid var(--line)}
+.call:last-child{border-bottom:1px solid var(--line)}
+.call-meta{margin:0 0 10px;font-size:.88rem;color:var(--muted)}
+.call-quote{margin:0 0 10px;padding:2px 0 2px 16px;border-left:3px solid var(--accent);font-size:1.02rem;overflow-wrap:anywhere;white-space:pre-wrap}
+.call-status{margin:0 0 10px;font-size:.95rem}
+.call-status .where{color:var(--muted)}
+.call-status code{font-size:.85rem;overflow-wrap:anywhere}
+.review{font:inherit;font-size:.88rem;padding:5px 12px;border:1px solid var(--line);border-radius:999px;background:transparent;color:var(--ink);cursor:pointer}
+.review:hover{border-color:var(--accent)}
+.review:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.call.reviewed .call-meta,.call.reviewed .call-quote,.call.reviewed .call-status{opacity:.55}
+.call.reviewed .review{color:var(--muted)}
+`;
+
+export function renderAppPage({email,reckonId,uploads=[],findings=[],calls=[]}){
+ const callList=normalizeCalls(calls);
  return `<!doctype html>
 <html lang="en">
 <head>
@@ -54,7 +139,7 @@ export function renderAppPage({email,reckonId,uploads=[],findings=[]}){
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
 <title>Your Reckon page</title>
-<style>${PAGE_STYLE}</style>
+<style>${PAGE_STYLE}${callList.length?CALLS_STYLE:''}</style>
 </head>
 <body>
 <div class="wrap">
@@ -70,7 +155,7 @@ export function renderAppPage({email,reckonId,uploads=[],findings=[]}){
 <h2 id="sent">What you sent</h2>
 ${sentSection(uploads)}
 </section>
-
+${callsSection(callList,reckonId)}
 <section aria-labelledby="back">
 <h2 id="back">What came back</h2>
 ${backSection(findings)}
@@ -97,5 +182,8 @@ ${SESSIONS_FACTS_HTML}
 }
 
 export function appResponse(data){
- return new Response(renderAppPage(data),{headers:{...HTML_HEADERS,'cache-control':'private, no-store'}});
+ const headers={...HTML_HEADERS,'cache-control':'private, no-store'};
+ // Allow exactly the one inline script, by hash, and only when it is on the page.
+ if(normalizeCalls(data?.calls).length)headers['content-security-policy']=HTML_HEADERS['content-security-policy']+`; script-src '${CALLS_SCRIPT_HASH}'`;
+ return new Response(renderAppPage(data),{headers});
 }
