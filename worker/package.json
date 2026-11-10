@@ -12,6 +12,6 @@
     "wrangler": "4.159.0"
   },
   "scripts": {
-    "test": "node test-public-context.mjs && node test-single-upload.mjs && node test-worker-cap.mjs && node test-registry-platform.mjs && node test-web-pages.mjs"
+    "test": "node test-public-context.mjs && node test-single-upload.mjs && node test-worker-cap.mjs && node test-registry-platform.mjs && node test-web-pages.mjs && node test-calls.mjs"
   }
 }

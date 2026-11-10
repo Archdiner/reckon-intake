@@ -95,8 +95,9 @@ Face token.
    `/browser/*` routes.
 4. Supply your deployment-private values outside git: the owner identity and
    extra-upload allowances in `worker/identity-registry.js`, and your
-   accepted-upload history as `worker/accepted-history.js`, and per-participant
-   findings as `worker/findings.js` (the committed versions are placeholders).
+   accepted-upload history as `worker/accepted-history.js`, per-participant
+   findings as `worker/findings.js`, and per-participant "Calls we noticed"
+   entries as `worker/calls.js` (the committed versions are placeholders).
 5. `npm ci && npm test` inside `worker/`, then `wrangler deploy -c <config>`.
 
 ## Tests
@@ -107,9 +108,9 @@ npm ci
 npm test
 ```
 
-Five suites: receiver context/auth fail-closed behavior, single-upload
+Six suites: receiver context/auth fail-closed behavior, single-upload
 invariants, upload-cap semantics, a real Miniflare (SQLite Durable Object)
-platform test, and the landing and signed-in web pages. Public tests use synthetic fixtures only; the live deployment's
+platform test, the landing and signed-in web pages, and the "Calls we noticed" section. Public tests use synthetic fixtures only; the live deployment's
 private history is exercised through the same ledger code paths.
 
 ## License

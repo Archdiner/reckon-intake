@@ -8,6 +8,7 @@ import {validateTarGz} from './validate.js';
 import {landingResponse} from './landing-page.js';
 import {appResponse} from './app-page.js';
 import {findingsByParticipant} from './findings.js';
+import {callsByParticipant} from './calls.js';
 const REPO='carneasado/coding-session-intake',CHUNK=3*1024**2,MAX=512*1024**2;
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const hex=s=>typeof s==='string'&&/^[0-9a-f]{64}$/.test(s);
@@ -37,7 +38,7 @@ async function handle(request,env,ctx,admission){
   const account=await registry(env,'identify',{email:identity.email,principal:identity.user_uuid});
   participant=account.participant;reckonId=account.reckon_id;principal=account.principal;browser=true;tokenHash=sha('reckon-access-v1:'+principal);
   if(request.method==='GET'&&url.pathname==='/browser/identity')return Response.json({email:identity.email,reckon_id:reckonId},{headers:{'cache-control':'private, no-store'}});
-  if(request.method==='GET'&&url.pathname==='/browser/app'){const uploads=await registry(env,'listUploads',{principal});const findings=Object.hasOwn(findingsByParticipant,participant)?findingsByParticipant[participant]:[];return appResponse({email:identity.email,reckonId,uploads,findings});}
+  if(request.method==='GET'&&url.pathname==='/browser/app'){const uploads=await registry(env,'listUploads',{principal});const findings=Object.hasOwn(findingsByParticipant,participant)?findingsByParticipant[participant]:[];const calls=Object.hasOwn(callsByParticipant,participant)?callsByParticipant[participant]:[];return appResponse({email:identity.email,reckonId,uploads,findings,calls});}
   if(request.method==='GET'&&url.pathname==='/browser/login')return new Response('Signed in to Reckon. Return to your terminal.',{headers:{'content-type':'text/plain; charset=utf-8','cache-control':'private, no-store'}});
   url.pathname=url.pathname.slice('/browser'.length);
   if(request.method==='POST'&&!['/v2/begin','/v2/part','/v2/finalize'].includes(url.pathname))throw fail('Browser uploads require v2',404);
