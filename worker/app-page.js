@@ -81,7 +81,6 @@ ${backSection(findings)}
 <ul>
 <li>The pilot is testing which reflections actually change how people work.</li>
 <li>Support for more session sources is planned.</li>
-<li>Send feedback to the person who invited you.</li>
 </ul>
 </section>
 
