@@ -41,8 +41,9 @@ pass('route: own calls only, via participant mapping; CSP allows exactly the one
 // Rendering and wording.
 {const sec=section(page(fixtures()));
  assert(sec.includes('<h1 id="calls-title">Things you told your agents</h1>'));
- assert(sec.includes('Pulled from your upload by a rule pass, so some may be misreads.'));
- assert(sec.includes('Budget or limit &middot; fixture-app &middot; 3 Oct 2026'));assert(sec.includes('Merge or release gate &middot; fixture-app &middot; date unclear'));assert(sec.includes('Asked for proof')&&sec.includes('Scope call'));
+ assert(sec.includes('Picked from your upload by a rule pass, then read through by hand.'));
+ assert(sec.includes('<span class="m">fixture-app &middot; 3 Oct 2026</span>'));assert(sec.includes('<span class="m">fixture-app &middot; date unclear</span>'));
+ for(const l of ['Budget or limit','Merge or release gate','Asked for proof','Scope call','Go-ahead'])assert(!sec.includes(l),`type label ${l} shown`);
  assert(sec.includes('Where to check: <code>fixture-org/fixture-app#12</code>'));assert(!sec.includes('fixture-org/fixture-app#14'),'checked entries show the outcome, not the locator');
  assert(sec.includes('Checked 2026-11-02: the current code contains a migration test in the release workflow. Current state observed on that date, not proof about the original change.'));
  assert(sec.includes(`<a href="${SRC}" rel="noopener noreferrer">Source</a>`));assert.equal((sec.match(/<a /g)||[]).length,1);
@@ -56,7 +57,23 @@ pass('route: own calls only, via participant mapping; CSP allows exactly the one
  assert(!/[–—]/.test(sec));
  const legacy=section(page([{...fixtures()[2],status:'open'}]));assert(!legacy.includes('Checked'));
  const noOutcome=section(page([{...fixtures()[1],outcome:null}]));assert(noOutcome.includes('Where to check:'));}
-pass('rendering: own words first, one context line, plain-text locator, https-only Source, exact not-checked wording, truncation kept inline');
+pass('rendering: own words first, project and date only, plain-text locator, https-only Source, exact not-checked wording, truncation kept inline');
+
+// The re-selected entries: standing instructions with only id, project, date and quote.
+const standing=()=>[
+ {id:'si-1',project:'fixture-app',date:'2026-10-03',quote:'Show me the failing test before you change anything.'},
+ {id:'si-2',project:'fixture-app',date:null,quote:'Run the full test suite before you say a change is done.'},
+ {id:'si-3',date:'2026-10-08',quote:'Ask before adding a new dependency.'},
+];
+{const sec=section(page(standing()));
+ assert.equal((sec.match(/type="checkbox"/g)||[]).length,3);
+ assert(sec.includes('<span class="m">fixture-app &middot; 3 Oct 2026</span>'));assert(sec.includes('<span class="m">fixture-app &middot; date unclear</span>'));assert(sec.includes('<span class="m">8 Oct 2026</span>'));
+ assert(!sec.includes('class="x"'),'no outcome or check line without that data');assert(!sec.includes('Where to check'));assert(!sec.includes('Checked'));
+ assert(!sec.includes('class="fine"'),'no outcome fine print when no entry carries an outcome');assert(!/outcome/i.test(sec.replace(/<script>[\s\S]*?<\/script>/,'')));
+ // Mixed: fine print appears only once some entry carries an observed outcome.
+ assert(!section(page([...standing(),fixtures()[0]])).includes('class="fine"'),'a locator alone does not bring the fine print');
+ const mixed=section(page([...standing(),fixtures()[1]]));assert(mixed.includes('class="fine"'));assert.equal((mixed.match(/class="fine"/g)||[]).length,1);}
+pass('standing-instruction entries: quote plus project and date only; outcome fine print only when an entry carries an outcome');
 
 // Escaping.
 {const html=renderAppPage({email:XSS,reckonId:XSS,calls:[{id:XSS,type:XSS,project:XSS,date:XSS,quote:XSS,status:'checked',outcome:{text:XSS,source_url:'javascript:alert(3)'},check_target:{kind:'github_pr',locator:XSS,basis:XSS}},{id:'c2',type:'go_ahead',project:'p',date:null,quote:'q',status:'not_checked',outcome:null,check_target:{kind:'github_pr',locator:XSS,basis:'b'}}]});

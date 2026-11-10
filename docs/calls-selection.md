@@ -62,6 +62,22 @@ So even in a hand-written set built to look like the real data, about half
 fail. Expect a similar or larger share of the real entries to drop out,
 especially go-aheads and one-off scope calls.
 
+## What the page shows for selected entries
+
+Entries that pass the rule need only `id` and `quote`, plus `project` and
+`date` when known (`worker/calls.js` documents the shape). For each one the
+page shows the quote, then one muted line with the project and date. Nothing
+else:
+
+- **No type label.** Every listed entry is a standing instruction, so a label
+  would repeat itself. The extractor's types guide selection only.
+- **No check machinery unless the data has it.** "Where to check" appears only
+  for an entry that carries a locator, and an observed outcome only for an
+  entry marked `checked` with outcome text. The fine print ("no outcome check
+  is recorded here; you may have checked elsewhere") appears only when at least
+  one listed entry carries an observed outcome, because only then is there a
+  contrast to explain. With the re-selected set, none of this renders.
+
 ## Design calls on the page
 
 These are decided, not open questions:

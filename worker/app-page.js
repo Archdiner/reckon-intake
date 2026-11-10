@@ -63,9 +63,10 @@ function findingLines(findings){
  }).join('; ')+'. They are observations, not verdicts.</p>';
 }
 
-// Candidate calls a one-off rule pass found in the participant's upload.
-// Entries are injected at deploy time (calls.js).
-const CALL_TYPE_LABEL={budget_cap:'Budget or limit',merge_or_release_gate:'Merge or release gate',verification_demand:'Asked for proof',go_ahead:'Go-ahead',launch_or_scope_call:'Scope call'};
+// Standing instructions picked from the participant's upload by a rule pass
+// and a manual read. Entries are injected at deploy time (calls.js). Only id
+// and quote are required; outcome and check fields are optional and render
+// only when present.
 const KEEP_PREFIX='reckon.keep.v1:';
 
 // The only script on the page. No network, no external files. It reveals the
@@ -95,12 +96,14 @@ export function normalizeCalls(calls){
 // word with a no-break space so the ellipsis never wraps onto a line alone.
 const keepEllipsis=html=>html.replace(/ …$/,' …');
 
+// An observed outcome, only when the entry actually carries one.
+const outcomeOf=c=>c.status==='checked'&&c.outcome&&typeof c.outcome.text==='string'&&c.outcome.text?c.outcome:null;
+
 function callRow(c){
- const label=CALL_TYPE_LABEL[c.type]||'Call';
  const project=typeof c.project==='string'&&c.project?c.project:'';
  const date=shortDate(c.date);
- const meta=[escapeHtml(label),project?escapeHtml(project):null,date||'date unclear'].filter(Boolean).join(' &middot; ');
- const outcome=c.status==='checked'&&c.outcome&&typeof c.outcome.text==='string'&&c.outcome.text?c.outcome:null;
+ const meta=[project?escapeHtml(project):null,date||'date unclear'].filter(Boolean).join(' &middot; ');
+ const outcome=outcomeOf(c);
  let extra='';
  if(outcome){
   const src=safeHttpsUrl(outcome.source_url);
@@ -120,12 +123,11 @@ function callsBlock(calls,reckonId){
  const account=typeof reckonId==='string'&&reckonId?` data-account="${escapeHtml(reckonId)}"`:'';
  return `<section id="calls" aria-labelledby="calls-title"${account}>
 <h1 id="calls-title">Things you told your agents</h1>
-<p class="lede">Pulled from your upload by a rule pass, so some may be misreads. <span class="pick-hint">Tick the ones worth writing down once, then copy them.</span></p>
+<p class="lede">Picked from your upload by a rule pass, then read through by hand. <span class="pick-hint">Tick the ones worth writing down once, then copy them.</span></p>
 <ol class="calls">
 ${calls.map(callRow).join('\n')}
 </ol>
-<p class="fine">Unless an entry shows what was observed: no outcome check is recorded here; you may have checked elsewhere.</p>
-<div id="keep" class="keep" hidden>
+${calls.some(outcomeOf)?'<p class="fine">Unless an entry shows what was observed: no outcome check is recorded here; you may have checked elsewhere.</p>\n':''}<div id="keep" class="keep" hidden>
 <label for="keep-text">Ready to paste. Edit it first if you like; nothing leaves this page.</label>
 <textarea id="keep-text" rows="4" spellcheck="false"></textarea>
 <button type="button" id="keep-copy">Copy</button>
