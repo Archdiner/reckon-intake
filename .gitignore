@@ -1,0 +1,8 @@
+node_modules/
+.wrangler/
+.DS_Store
+# Local deployment configs (copy from *.example.json and fill in your own values)
+worker/paxel-intake.json
+worker/reckon-intake.json
+# Test build artifact
+worker/reckon-registry-platform-test-dist.js

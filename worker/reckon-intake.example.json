@@ -1,0 +1,17 @@
+{
+  "name": "reckon-intake",
+  "main": "launcher.js",
+  "account_id": "YOUR_CLOUDFLARE_ACCOUNT_ID",
+  "compatibility_date": "2026-08-06",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": true,
+  "preview_urls": false,
+  "limits": {
+    "cpu_ms": 30000
+  },
+  "observability": {
+    "enabled": false
+  }
+}

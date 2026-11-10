@@ -1,0 +1,17 @@
+{
+  "name": "reckon-intake-worker",
+  "version": "1.0.0",
+  "description": "Reckon session intake receiver: Cloudflare worker, identity registry and private-storage validation",
+  "type": "module",
+  "license": "MIT",
+  "dependencies": {
+    "@huggingface/hub": "2.11.0"
+  },
+  "devDependencies": {
+    "miniflare": "^4.20260730.0",
+    "wrangler": "4.159.0"
+  },
+  "scripts": {
+    "test": "node test-public-context.mjs && node test-single-upload.mjs && node test-worker-cap.mjs && node test-registry-platform.mjs"
+  }
+}
