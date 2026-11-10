@@ -112,6 +112,107 @@ worse than none. It only covers Claude Code. Model and usage are useful on
 their own, so the companion could be valued for those while the Reckon line
 adds nothing; that would be worth knowing.
 
+### 3b. The terminal buddy: feasible or overdone?
+
+The owner asked for "a little terminal buddy that pops out occasionally with
+some ideas", one that sees what he is doing live and updates over time, and
+asked whether that is feasible or overdone.
+
+**Short answer: feasible, if it stays inside Claude Code and stays quiet.** It
+can see a lot of what happens in a Claude Code session, react at the right
+moments, and cost nothing to run. It cannot see anything outside that session,
+and it cannot interrupt him whenever it likes. It becomes overdone the moment
+it talks more than about once a session or starts restating what he can
+already see.
+
+#### What it can actually see (Claude Code 2.1.42, read from the installed build)
+
+- **Status line.** A command set in settings. Claude Code re-runs it about
+  300 ms after the conversation updates and shows what it prints. On stdin it
+  receives JSON with:
+  - `session_id`, `transcript_path`, `cwd`, `version`;
+  - `model.id` and `model.display_name`;
+  - `workspace.current_dir` and `workspace.project_dir`;
+  - `cost` (`total_cost_usd`, an estimate; `total_duration_ms`;
+    `total_lines_added`; `total_lines_removed`);
+  - `context_window` (total input and output tokens, window size,
+    `used_percentage`);
+  - and a few optional fields (vim mode, agent name).
+
+  It only runs while a session is open and only when the conversation changes;
+  it cannot tick on its own.
+- **Hooks.** Commands that fire on session events: `SessionStart`,
+  `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`,
+  `PermissionRequest`, `Notification`, `Stop`, `SubagentStart`,
+  `SubagentStop`, `PreCompact`, `SessionEnd`, and a few for setup and teams.
+  - **Input:** every hook gets `session_id`, `transcript_path`, `cwd` and
+    `permission_mode`, plus event fields such as the prompt text
+    (`UserPromptSubmit`) or the tool name and input (`PreToolUse`,
+    `PostToolUse`).
+  - **Output:** a `systemMessage` shown to him, or `additionalContext` that
+    goes into the model's context. A few events can block the next step.
+- **The transcript.** `transcript_path` points at the session's own JSONL file
+  on his disk: every prompt, reply and tool call so far. That is the "live
+  view": a hook can read what was just asked and what the agent did.
+- **Instructions file.** `CLAUDE.md` is read at session start. It is static,
+  so it suits standing context, not live reactions.
+
+#### What it will miss
+
+- **Outside the session:** his screen, his editor outside Claude Code, other
+  apps, the browser, and other tools such as Cursor or Codex. None of this is
+  visible to any route above, and screen recording or global input capture is
+  out of scope.
+- **Silences:** anything he thinks or does between turns. It sees the turns,
+  not the pauses.
+- **Its own timing:** it cannot pop up whenever it likes, only at session
+  events. In practice "occasionally" means at the end of a turn (`Stop`) or
+  when he sends a prompt.
+
+#### Shape
+
+- **Two surfaces, one script:**
+  - **Status line, always on:** the model in use (a stronger model marked
+    plainly), session cost and context used, and one short phrase of his own
+    context for this project.
+  - **Pop-out:** at most one line per session, sent as a `systemMessage` from
+    the `Stop` hook. It is shown to him only and never injected into the
+    model's context, so it cannot steer the agent behind his back.
+- **Triggers:** local rules grounded in his own steering patterns. For
+  example, a turn that added far more lines than his prompt implied, on a
+  project where he has repeatedly pulled agents back to the smallest version.
+  No rule fires twice in a session.
+- **Cost:** none to run. Rules are deterministic and local, and no model is
+  called. A model-written nudge is possible later only as an explicit opt-in,
+  occasional and never continuous, and each call would be logged with its
+  model and usage.
+- **Privacy:** it reads the transcript file already on his disk, writes only to
+  `~/.reckon/` and makes no network calls. Nothing it sees is uploaded.
+- **Inspectable:** every status line it printed and every nudge it showed goes
+  into `~/.reckon/buddy.log` with the time, project and the rule that fired.
+  It also records what his next prompt was, so whether a nudge mattered can be
+  judged later by reading the log, not by a number on screen.
+- **Updates over time:** the rules and per-project phrases live in
+  `~/.reckon/buddy-rules.json`. After a later upload, the person running the
+  pilot can ship a revised file, or he can edit it himself. The script stays
+  the same.
+
+#### Setup he runs once
+
+Copy one script to `~/.reckon/buddy.mjs`, then add two entries to
+`~/.claude/settings.json`: `statusLine` (a command running
+`node ~/.reckon/buddy.mjs status`) and a `Stop` hook (running
+`node ~/.reckon/buddy.mjs stop`). It needs Node, which an npm install of
+Claude Code already has. Removing the two entries uninstalls it.
+
+#### Tonight's trial, smallest possible
+
+Install the script with the status line entry only. It prints the model, the
+session cost and context used, and one hand-written phrase for the project he
+opens. It logs every line it prints. Use it for an evening of normal work, then
+read the log and decide two things: whether the line is worth its space, and
+whether to add the `Stop` hook and its single rule next.
+
 ## 4. One moment, before and after
 
 **First three seconds:** a single moment from his sessions, shown side by
