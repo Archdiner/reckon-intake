@@ -11,8 +11,9 @@ with it.
 
 ## Layout
 
-- `install.sh` - the one-command launcher people run. Verifies the client
-  download against a pinned SHA-256 before executing anything.
+- `install.sh` - the one-command launcher people run. Verifies each download
+  (the client bundle and the browser sign-in helper) against pinned SHA-256
+  checksums before running it.
 - `client/` - everything that runs on your computer: session discovery and
   export (`export-coding-sessions.sh`), deterministic secret masking
   (`mask-export.py`), packing, upload and verification. Bash + Python 3
