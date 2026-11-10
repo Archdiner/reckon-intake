@@ -2,7 +2,7 @@
 // Reads like a receipt or a short letter, not a dashboard: what you sent, what
 // came back, what happens next. One column of plain text and lists; every
 // dynamic value is escaped.
-import {PAGE_STYLE,HTML_HEADERS} from './landing-page.js';
+import {PAGE_STYLE,HTML_HEADERS,SESSIONS_FACTS_HTML} from './landing-page.js';
 
 export const escapeHtml=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
 
@@ -83,6 +83,11 @@ ${backSection(findings)}
 <li>Support for more session sources is planned.</li>
 <li>Send feedback to the person who invited you.</li>
 </ul>
+</section>
+
+<section aria-labelledby="sessions">
+<h2 id="sessions">What happens to your sessions</h2>
+${SESSIONS_FACTS_HTML}
 </section>
 </main>
 <footer><p>This page is private to your account. <a href="/cdn-cgi/access/logout">Sign out</a></p></footer>

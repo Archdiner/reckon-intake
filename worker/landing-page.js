@@ -5,6 +5,20 @@
 // marketing template or dashboard.
 export const INSTALL_COMMAND='curl -fsSL https://reckon-intake.aarizvi06.workers.dev/install.sh | bash';
 
+export const REPO_URL='https://github.com/Archdiner/reckon-intake';
+
+// Shared by the landing page and the signed-in page so both state exactly the
+// same facts. Keep every sentence traceable to the READMEs or the product
+// owner's stated commitments; add no other privacy claims.
+export const SESSIONS_FACTS_HTML=`<p>The collector runs on your machine. The collector does not modify your original files. It uploads a copy of the transcript content with detected key-like values replaced by stars. Masking can miss secrets, and names, emails, personal information and code remain readable in the uploaded copy.</p>
+<ul>
+<li>Masking is deterministic local pattern matching, with no network calls.</li>
+<li>Your masked copy goes to private storage operated by the person running the pilot. A real person reads it to write your findings. It is not sold, shared, or made public.</li>
+<li>The pilot allows one upload per account, with small caps on accounts and upload size.</li>
+<li>The collector code is <a href="${REPO_URL}">public</a>, so you can read exactly what runs and what leaves your machine.</li>
+</ul>
+<p>Self-serve deletion and automatic retention limits are not built into this pilot yet. It is run by one operator - the person who gave you the install command - and you can reach them directly.</p>`;
+
 export const PAGE_STYLE=`
 :root{--accent:#087f9c;--ink:#1b1f23;--muted:#57606a;--line:#d8dee4;--bg:#ffffff;--soft:#f5f7f9}
 *{box-sizing:border-box}
@@ -61,6 +75,9 @@ export const LANDING_PAGE=`<!doctype html>
 </ol>
 <p>Findings are observations and hypotheses about your sessions, not verdicts.</p>
 
+<h2 id="sessions">What happens to your sessions</h2>
+${SESSIONS_FACTS_HTML}
+
 <h2>What it reads today</h2>
 <p>Today the collector supports local coding assistants: Claude Code, Codex, Cursor, Gemini, Antigravity, OpenCode, VS Code Copilot and Pi. Support for more session sources, such as general chatbots, is planned.</p>
 
@@ -71,7 +88,7 @@ export const LANDING_PAGE=`<!doctype html>
 <p><a href="/browser/app">Sign in</a> with the same email you used in the terminal to see what you sent and what came back.</p>
 </main>
 <footer>
-<p>Reckon is a research pilot. The original export stays on your machine; only the masked copy is uploaded, to private storage.</p>
+<p>Reckon is a research pilot.</p>
 </footer>
 </div>
 </body>
